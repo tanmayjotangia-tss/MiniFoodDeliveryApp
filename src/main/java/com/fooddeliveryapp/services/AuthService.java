@@ -5,6 +5,7 @@ import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.models.repository.Repository;
+import com.fooddeliveryapp.utils.InputUtil;
 
 import java.util.Optional;
 
@@ -44,8 +45,15 @@ public class AuthService {
                 break;
 
             case "customer":
-                newUser = new Customer(name, email, phone, password);
-                break;
+                System.out.println("Notify via:");
+                System.out.println("1. Email");
+                System.out.println("2. Phone");
+
+                int choice = InputUtil.readInt("Enter your choice: ");
+
+                String preference = (choice == 1) ? "EMAIL" : "PHONE";
+
+                newUser = new Customer(name, email, phone, password, preference);                break;
 
             case "delivery":
                 newUser = new DeliveryPartner(name, email, phone, password, 0);

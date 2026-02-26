@@ -342,7 +342,7 @@ public class AdminController {
         System.out.println("\n--- ORDER HISTORY ---");
 
         for (Order order : orders) {
-            System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomer().getName() + " | Final Amount: ₹" + order.getTotalAmount() + " | Status: " + order.getStatus());
+            System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomerName() + " | Final Amount: ₹" + order.getTotalAmount() + " | Status: " + order.getStatus());
         }
     }
 
