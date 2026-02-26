@@ -1,6 +1,6 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.models.DeliveryPartner;
+import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;
 import com.fooddeliveryapp.models.order.Order;

@@ -1,6 +1,6 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.models.Customer;
+import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
 import com.fooddeliveryapp.models.menu.Menu;

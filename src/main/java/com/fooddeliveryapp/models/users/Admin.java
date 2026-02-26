@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.models;
+package com.fooddeliveryapp.models.users;
 
 import java.io.Serializable;
 import java.util.Objects;
