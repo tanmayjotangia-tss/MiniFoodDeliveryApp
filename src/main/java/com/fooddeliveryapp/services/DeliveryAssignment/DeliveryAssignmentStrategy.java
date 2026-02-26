@@ -1,6 +1,6 @@
 package com.fooddeliveryapp.services.DeliveryAssignment;
 
-import com.fooddeliveryapp.models.users.DeliveryPartner;
+import com.fooddeliveryapp.models.DeliveryPartner;
 
 import java.util.List;
 

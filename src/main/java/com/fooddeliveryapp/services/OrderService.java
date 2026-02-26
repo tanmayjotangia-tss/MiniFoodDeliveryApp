@@ -1,6 +1,6 @@
 package com.fooddeliveryapp.services;
 
-import com.fooddeliveryapp.models.users.DeliveryPartner;
+import com.fooddeliveryapp.models.DeliveryPartner;
 import com.fooddeliveryapp.models.order.PaymentMode;
 import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;

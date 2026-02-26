@@ -1,7 +1,7 @@
 package com.fooddeliveryapp.services;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
-import com.fooddeliveryapp.models.users.DeliveryPartner;
+import com.fooddeliveryapp.models.DeliveryPartner;
 import com.fooddeliveryapp.models.repository.Repository;
 
 import java.util.List;
