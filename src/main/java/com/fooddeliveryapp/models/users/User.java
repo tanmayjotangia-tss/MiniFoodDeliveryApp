@@ -1,4 +1,4 @@
 package com.fooddeliveryapp.models.users;
 
-public class Customer {
+public class User {
 }
