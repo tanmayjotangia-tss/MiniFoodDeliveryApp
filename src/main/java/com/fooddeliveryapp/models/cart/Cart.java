@@ -1,8 +1,8 @@
 package com.fooddeliveryapp.models.cart;
 
 import com.fooddeliveryapp.exception.InvalidOperationException;
-import com.fooddeliveryapp.models.Customer;
 import com.fooddeliveryapp.models.menu.MenuItem;
+import com.fooddeliveryapp.models.users.Customer;
 
 import java.io.Serializable;
 import java.util.*;

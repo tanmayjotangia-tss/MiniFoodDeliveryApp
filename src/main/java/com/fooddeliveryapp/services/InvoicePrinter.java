@@ -2,6 +2,7 @@ package com.fooddeliveryapp.services;
 
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderItem;
+import com.fooddeliveryapp.models.users.DeliveryPartner;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -47,19 +48,15 @@ public class InvoicePrinter {
 
         printLine('-');
 
-        double discount = total - order.getFinalAmount();
+        double discount = total - order.getTotalAmount();
 
         System.out.printf("%-40s ₹%10.2f%n", "Total Amount:", total);
         System.out.printf("%-40s ₹%10.2f%n", "Discount:", discount);
-        System.out.printf("%-40s ₹%10.2f%n", "Final Amount:", order.getFinalAmount());
+        System.out.printf("%-40s ₹%10.2f%n", "Final Amount:", order.getTotalAmount());
 
         printLine('-');
 
         System.out.printf("%-20s : %s%n", "Payment Mode", order.getPaymentMode());
-
-        if (order.getAssignedPartner() != null) {
-            System.out.printf("%-20s : %s%n", "Delivery Partner", order.getAssignedPartner().getName());
-        }
 
         System.out.printf("%-20s : %s%n", "Order Status", order.getStatus());
 

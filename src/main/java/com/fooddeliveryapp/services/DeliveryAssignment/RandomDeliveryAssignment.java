@@ -2,7 +2,8 @@ package com.fooddeliveryapp.services.DeliveryAssignment;
 
 
 import com.fooddeliveryapp.exception.InvalidOperationException;
-import com.fooddeliveryapp.models.DeliveryPartner;
+import com.fooddeliveryapp.models.order.Order;
+import com.fooddeliveryapp.models.users.DeliveryPartner;
 
 import java.util.List;
 import java.util.Random;
@@ -13,7 +14,7 @@ public class RandomDeliveryAssignment implements DeliveryAssignmentStrategy {
     private final Random random = new Random();
 
     @Override
-    public DeliveryPartner assign(List<DeliveryPartner> partners) {
+    public DeliveryPartner assign(Order order, List<DeliveryPartner> partners) {
 
         List<DeliveryPartner> available =
                 partners.stream()

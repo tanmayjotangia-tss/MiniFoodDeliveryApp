@@ -1,12 +1,12 @@
 package com.fooddeliveryapp.controllers;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
-import com.fooddeliveryapp.models.DeliveryPartner;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;
 import com.fooddeliveryapp.models.menu.MenuComponent;
 import com.fooddeliveryapp.models.menu.MenuItem;
 import com.fooddeliveryapp.models.order.Order;
+import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.services.DeliveryPartnerService;
 import com.fooddeliveryapp.services.DiscountService;
 import com.fooddeliveryapp.services.MenuService;
@@ -213,12 +213,14 @@ public class AdminController {
 
     private void addPartner() {
 
-        String name = InputUtil.readString("Enter partner name: ");
-
+        String name = InputUtil.readString("Enter name: ");
+        String phone = InputUtil.readString("Enter phone: ");
         double pay = InputUtil.readDouble("Enter basic pay: ");
+        String email = InputUtil.readEmail("Enter email id: ");
+        String password = InputUtil.readString("Enter password: ");
 
         try {
-            DeliveryPartner partner = new DeliveryPartner(name, pay);
+            DeliveryPartner partner = new DeliveryPartner(name,email,phone,password,pay);
 
             deliveryService.addPartner(partner);
 
@@ -291,7 +293,7 @@ public class AdminController {
         System.out.println("\n--- ORDER HISTORY ---");
 
         for (Order order : orders) {
-            System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomer().getName() + " | Final Amount: ₹" + order.getFinalAmount() + " | Status: " + order.getStatus());
+            System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomer().getName() + " | Final Amount: ₹" + order.getTotalAmount() + " | Status: " + order.getStatus());
         }
     }
 

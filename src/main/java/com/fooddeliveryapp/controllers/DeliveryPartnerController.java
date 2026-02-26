@@ -1,7 +1,7 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.models.DeliveryPartner;
 import com.fooddeliveryapp.models.order.Order;
+import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.services.DeliveryPartnerService;
 import com.fooddeliveryapp.services.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
@@ -77,12 +77,12 @@ public class DeliveryPartnerController {
 
             Order o = orders.get(i);
 
-            System.out.println((i + 1) + ". ID: " + o.getId() + " | Status: " + o.getStatus() + " | Amount: " + o.getFinalAmount());
+            System.out.println((i + 1) + ". ID: " + o.getId() + " | Status: " + o.getStatus() + " | Amount: " + o.getTotalAmount());
         }
     }
 
     private void acceptOrder(DeliveryPartner partner) {
-        List<Order> orders = orderService.getOrdersByPartner(partner.getId()).stream().filter(o -> o.getStatus().name().equals("ASSIGNED")).toList();
+        List<Order> orders = orderService.getOrdersByPartner(partner.getId()).stream().filter(o -> o.getStatus().equals("ASSIGNED")).toList();
 
         if (orders.isEmpty()) {
             System.out.println("No orders available to accept.");
@@ -100,7 +100,7 @@ public class DeliveryPartnerController {
 
 
     private void deliverOrder(DeliveryPartner partner) {
-        List<Order> orders = orderService.getOrdersByPartner(partner.getId()).stream().filter(o -> o.getStatus().name().equals("OUT_FOR_DELIVERY")).toList();
+        List<Order> orders = orderService.getOrdersByPartner(partner.getId()).stream().filter(o -> o.getStatus().equals("OUT_FOR_DELIVERY")).toList();
 
         if (orders.isEmpty()) {
             System.out.println("No orders ready for delivery.");
@@ -114,7 +114,7 @@ public class DeliveryPartnerController {
         orderService.deliverOrder(selected.getId(), partner.getId());
 
         System.out.println("Order delivered successfully.");
-        partner.markAvailable();
+        partner.setAvailable(true);
     }
 
     private Order selectOrderFromList(List<Order> orders) {

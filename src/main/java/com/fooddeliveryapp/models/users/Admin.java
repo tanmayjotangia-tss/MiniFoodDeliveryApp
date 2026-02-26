@@ -4,10 +4,10 @@ public class Admin extends User {
 
     private static Admin instance;
 
-    private Admin(String name,
-                  String email,
-                  String phone,
-                  String password) {
+    public Admin(String name,
+                 String email,
+                 String phone,
+                 String password) {
 
         super(name, email, phone, password);
     }

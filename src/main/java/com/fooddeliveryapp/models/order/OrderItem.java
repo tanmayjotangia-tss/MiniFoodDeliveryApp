@@ -30,4 +30,5 @@ public class OrderItem implements Serializable {
     public int getQuantity() {
         return quantity;
     }
+
 }

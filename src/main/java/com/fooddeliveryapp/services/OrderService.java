@@ -1,13 +1,13 @@
 package com.fooddeliveryapp.services;
 
-import com.fooddeliveryapp.models.DeliveryPartner;
-import com.fooddeliveryapp.models.order.PaymentMode;
 import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderItem;
 import com.fooddeliveryapp.models.order.OrderStatus;
+import com.fooddeliveryapp.models.order.PaymentMode;
 import com.fooddeliveryapp.models.repository.Repository;
+import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.services.DeliveryAssignment.DeliveryAssignmentStrategy;
 import com.fooddeliveryapp.services.payment.PaymentStrategy;
 
@@ -20,7 +20,10 @@ public class OrderService {
     private final Repository<DeliveryPartner> partnerRepository;
     private final DeliveryAssignmentStrategy deliveryStrategy;
 
-    public OrderService(Repository<Order> orderRepository, DiscountService discountService, Repository<DeliveryPartner> partnerRepository, DeliveryAssignmentStrategy deliveryStrategy) {
+    public OrderService(Repository<Order> orderRepository,
+                        DiscountService discountService,
+                        Repository<DeliveryPartner> partnerRepository,
+                        DeliveryAssignmentStrategy deliveryStrategy) {
 
         this.orderRepository = orderRepository;
         this.discountService = discountService;
@@ -28,74 +31,62 @@ public class OrderService {
         this.deliveryStrategy = deliveryStrategy;
     }
 
-    public void createOrder(Order order) {
-        orderRepository.save(order);
-    }
+    // --------------------------------------------------
+    // Checkout
+    // --------------------------------------------------
+    public Order checkoutCart(Cart cart,
+                              PaymentStrategy paymentStrategy,
+                              PaymentMode mode) {
 
-    public Order checkoutCart(Cart cart, PaymentStrategy paymentStrategy, PaymentMode mode) {
+        if (cart.getItems().isEmpty()) {
+            throw new IllegalStateException("Cart is empty");
+        }
 
-        if (cart.getItems().isEmpty()) throw new IllegalStateException("Cart is empty");
+        Order order = new Order(cart.getCustomer().getId());
 
-        Order order = new Order(cart.getCustomer());
-
+        // Convert cart items to order items
         for (CartItem cartItem : cart.getItems()) {
-
-            OrderItem orderItem = new OrderItem(cartItem.getItem(), cartItem.getQuantity());
-
+            OrderItem orderItem =
+                    new OrderItem(cartItem.getItem(), cartItem.getQuantity());
             order.addItem(orderItem);
         }
 
-        double discount = discountService.getCurrentStrategy().calculate(order.getFinalAmount());
+        // Apply discount
+        double discount = discountService
+                .getCurrentStrategy()
+                .calculate(order.getTotalAmount());
 
         order.applyDiscount(discount);
 
-        paymentStrategy.pay(order.getFinalAmount());
+        // Process payment
+        paymentStrategy.pay(order.getTotalAmount());
 
+        // Mark paid
         order.markPaid(mode);
 
         orderRepository.save(order);
-
         cart.clearCart();
 
         return order;
     }
 
-    public double calculateTotalRevenue() {
-
-        return orderRepository.findAll().stream().filter(order -> order.getStatus() != OrderStatus.CREATED).mapToDouble(Order::getFinalAmount).sum();
-    }
-
-    public long getTotalOrders() {
-        return orderRepository.findAll().size();
-    }
-
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
-    }
-
-    private Order findOrder(String orderId) {
-
-        if (orderId == null || orderId.isBlank()) throw new IllegalArgumentException("Order ID is required");
-
-        return orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + orderId));
-    }
-
-    public List<Order> getOrdersByCustomer(String customerId) {
-        return orderRepository.findAll()
-                .stream()
-                .filter(o -> o.getCustomer().getId().equals(customerId))
-                .toList();
-    }
-
+    // --------------------------------------------------
+    // Admin Operations
+    // --------------------------------------------------
     public void confirmOrder(String orderId) {
 
         Order order = findOrder(orderId);
 
-        if (order.getStatus() != OrderStatus.PAID)
-            throw new IllegalStateException("Only PAID orders can be confirmed.");
-
         order.confirmByAdmin();
+
+        orderRepository.save(order);
+    }
+
+    public void cancelOrderByAdmin(String orderId) {
+
+        Order order = findOrder(orderId);
+
+        order.cancel();
 
         orderRepository.save(order);
     }
@@ -104,36 +95,32 @@ public class OrderService {
 
         Order order = findOrder(orderId);
 
-        if (order.getStatus() != OrderStatus.CONFIRMED_BY_ADMIN)
-            throw new IllegalStateException("Order must be confirmed before assigning partner.");
+        DeliveryPartner partner = partnerRepository
+                .findById(partnerId)
+                .orElseThrow(() -> new IllegalArgumentException("Partner not found"));
 
-        DeliveryPartner partner = partnerRepository.findById(partnerId)
-                .orElseThrow(() -> new IllegalStateException("Delivery partner not found."));
-
-        order.assignDeliveryPartner(partner);
+        // FIXED (previous bug removed)
+        order.assignDeliveryPartner(partner.getId());
 
         orderRepository.save(order);
     }
 
-    public List<Order> getOrdersByPartner(String partnerId) {
-
-        return orderRepository.findAll()
-                .stream()
-                .filter(order -> order.getAssignedPartner() != null && order.getAssignedPartner().getId().equals(partnerId))
-                .toList();
-    }
-
+    // --------------------------------------------------
+    // Delivery Partner Operations
+    // --------------------------------------------------
     public void acceptOrder(String orderId, String partnerId) {
 
         Order order = findOrder(orderId);
 
-        if (order.getAssignedPartner() == null || !order.getAssignedPartner().getId().equals(partnerId)) {
+        if (order.getDeliveryPartnerId() == null ||
+                !order.getDeliveryPartnerId().equals(partnerId)) {
 
             throw new IllegalStateException("You are not assigned to this order.");
         }
 
-        if (order.getStatus() != OrderStatus.ASSIGNED)
+        if (order.getStatus() != OrderStatus.ASSIGNED) {
             throw new IllegalStateException("Order is not ready to be accepted.");
+        }
 
         order.markOutForDelivery();
 
@@ -144,28 +131,68 @@ public class OrderService {
 
         Order order = findOrder(orderId);
 
-        if (order.getAssignedPartner() == null || !order.getAssignedPartner().getId().equals(partnerId)) {
+        if (order.getDeliveryPartnerId() == null ||
+                !order.getDeliveryPartnerId().equals(partnerId)) {
 
             throw new IllegalStateException("You are not assigned to this order.");
         }
 
-        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY)
+        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY) {
             throw new IllegalStateException("Order is not out for delivery.");
+        }
 
         order.markDelivered();
 
         orderRepository.save(order);
     }
 
-    public void cancelOrderByAdmin(String orderId) {
+    // --------------------------------------------------
+    // Reporting
+    // --------------------------------------------------
+    public double calculateTotalRevenue() {
 
-        Order order = findOrder(orderId);
+        return orderRepository.findAll()
+                .stream()
+                .filter(order -> order.getStatus() != OrderStatus.CREATED)
+                .mapToDouble(Order::getTotalAmount)
+                .sum();
+    }
 
-        if (order.getStatus() == OrderStatus.DELIVERED)
-            throw new IllegalStateException("Delivered order cannot be cancelled.");
+    public long getTotalOrders() {
+        return orderRepository.findAll().size();
+    }
 
-        order.cancel();
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
 
-        orderRepository.save(order);
+    public List<Order> getOrdersByCustomer(String customerId) {
+
+        return orderRepository.findAll()
+                .stream()
+                .filter(o -> o.getCustomerId().equals(customerId))
+                .toList();
+    }
+
+    public List<Order> getOrdersByPartner(String partnerId) {
+
+        return orderRepository.findAll()
+                .stream()
+                .filter(o -> partnerId.equals(o.getDeliveryPartnerId()))
+                .toList();
+    }
+
+    // --------------------------------------------------
+    // Internal Helper
+    // --------------------------------------------------
+    private Order findOrder(String orderId) {
+
+        if (orderId == null || orderId.isBlank()) {
+            throw new IllegalArgumentException("Order ID required");
+        }
+
+        return orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Order not found: " + orderId));
     }
 }

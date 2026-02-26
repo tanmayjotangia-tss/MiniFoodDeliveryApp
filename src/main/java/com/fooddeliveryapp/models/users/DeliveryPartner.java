@@ -25,4 +25,8 @@ public class DeliveryPartner extends User {
     public String getRole() {
         return "DELIVERY_PARTNER";
     }
+
+    public void updateBasicPay(double newPay) {
+        this.basicPay = newPay;
+    }
 }

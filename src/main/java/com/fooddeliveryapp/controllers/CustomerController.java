@@ -1,12 +1,12 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.models.Customer;
 import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuItem;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.PaymentMode;
+import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.services.OrderService;
 import com.fooddeliveryapp.services.payment.PaymentStrategy;
 import com.fooddeliveryapp.services.payment.PaymentFactory;
@@ -28,10 +28,11 @@ public class CustomerController {
     public void start() {
 
         String name = InputUtil.readString("Enter your name: ");
-
+        String phone = InputUtil.readString("Enter phone no: ");
         String email = InputUtil.readString("Enter your email: ");
+        String password = InputUtil.readString("Enter password: ");
 
-        Customer customer = new Customer(name, email);
+        Customer customer = new Customer(name, email,phone,password);
 
         Cart cart = new Cart(customer);
 
