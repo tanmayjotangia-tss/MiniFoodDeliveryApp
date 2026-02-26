@@ -11,11 +11,9 @@ public class OrderItem implements Serializable {
 
     public OrderItem(MenuItem item, int quantity) {
 
-        if (item == null)
-            throw new IllegalArgumentException("Item required");
+        if (item == null) throw new IllegalArgumentException("Item required");
 
-        if (quantity <= 0)
-            throw new IllegalArgumentException("Invalid quantity");
+        if (quantity <= 0) throw new IllegalArgumentException("Invalid quantity");
 
         this.item = item;
         this.quantity = quantity;
@@ -25,7 +23,11 @@ public class OrderItem implements Serializable {
         return item.getPrice() * quantity;
     }
 
-    public MenuItem getItem() { return item; }
+    public MenuItem getItem() {
+        return item;
+    }
 
-    public int getQuantity() { return quantity; }
+    public int getQuantity() {
+        return quantity;
+    }
 }

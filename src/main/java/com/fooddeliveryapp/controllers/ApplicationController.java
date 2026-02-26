@@ -17,27 +17,19 @@ public class ApplicationController {
 
     private final AdminController adminController;
     private final CustomerController customerController;
+    private final DeliveryPartnerController deliveryPartnerController;
     private final Menu menu;
 
     public ApplicationController() {
 
-        // --------------------------
-        // Infrastructure Wiring
-        // --------------------------
+//      Serialization
+        Repository<Menu> menuRepository = new FileRepository<>("menu.dat");
 
-        Repository<Menu> menuRepository =
-                new FileRepository<>("menu.dat");
+        Repository<Order> orderRepository = new FileRepository<>("orders.dat");
 
-        Repository<Order> orderRepository =
-                new FileRepository<>("orders.dat");
+        Repository<DeliveryPartner> partnerRepository = new FileRepository<>("partners.dat");
 
-        Repository<DeliveryPartner> partnerRepository =
-                new FileRepository<>("partners.dat");
-
-        // --------------------------
-        // Load Menu From Repository
-        // --------------------------
-
+//        Loading menu
         List<Menu> menus = menuRepository.findAll();
 
         if (menus.isEmpty()) {
@@ -47,67 +39,30 @@ public class ApplicationController {
             this.menu = menus.get(0);
         }
 
-        // --------------------------
-        // Strategy Initialization
-        // --------------------------
+//      Discount by default
+        DiscountService discountService = new DiscountService(new AmountDiscount(500, 10));
 
-        DiscountService discountService =
-                new DiscountService(
-                        new AmountDiscount(500, 10)
-                );
+        DeliveryAssignmentStrategy deliveryStrategy = new RandomDeliveryAssignment();
 
-        DeliveryAssignmentStrategy deliveryStrategy =
-                new RandomDeliveryAssignment();
+//        Services initialisation
+        MenuService menuService = new MenuService(menuRepository);
 
-        // --------------------------
-        // Service Initialization
-        // --------------------------
+        DeliveryPartnerService deliveryService = new DeliveryPartnerService(partnerRepository);
 
-        MenuService menuService =
-                new MenuService(menuRepository);
+        OrderService orderService = new OrderService(orderRepository, discountService, partnerRepository, deliveryStrategy);
 
-        DeliveryPartnerService deliveryService =
-                new DeliveryPartnerService(partnerRepository);
+//        Controller initialisation
+        this.adminController = new AdminController(menuService, deliveryService, discountService, orderService, this.menu);
 
-        OrderService orderService =
-                new OrderService(orderRepository,
-                        discountService,
-                        partnerRepository,
-                        deliveryStrategy);
+        this.customerController = new CustomerController(orderService, this.menu);
 
-        // --------------------------
-        // Controllers
-        // --------------------------
-
-        this.adminController =
-                new AdminController(menuService,
-                        deliveryService,
-                        discountService,
-                        orderService,
-                        this.menu);
-
-        this.customerController =
-                new CustomerController(orderService, this.menu);
+        this.deliveryPartnerController = new DeliveryPartnerController(orderService, deliveryService);
     }
-
-    // --------------------------
-    // Menu Empty Check
-    // --------------------------
 
     private boolean isMenuEmpty() {
 
-        return menu.getRootCategory()
-                .getComponents()
-                .stream()
-                .filter(c -> c instanceof MenuCategory)
-                .map(c -> (MenuCategory) c)
-                .allMatch(category ->
-                        category.getComponents().isEmpty());
+        return menu.getRootCategory().getComponents().stream().filter(c -> c instanceof MenuCategory).map(c -> (MenuCategory) c).allMatch(category -> category.getComponents().isEmpty());
     }
-
-    // --------------------------
-    // START METHOD (Still Here)
-    // --------------------------
 
     public void start() {
 
@@ -116,7 +71,8 @@ public class ApplicationController {
             System.out.println("\n=== RESTAURANT SYSTEM ===");
             System.out.println("1. Admin");
             System.out.println("2. Customer");
-            System.out.println("3. Exit");
+            System.out.println("3. Delivery Partner");
+            System.out.println("4. Exit");
 
             int choice = InputUtil.readInt("Enter choice: ");
 
@@ -133,7 +89,9 @@ public class ApplicationController {
                     }
                 }
 
-                case 3 -> {
+                case 3 -> deliveryPartnerController.start();
+
+                case 4 -> {
                     System.out.println("Exiting application...");
                     return;
                 }

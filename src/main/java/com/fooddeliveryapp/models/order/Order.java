@@ -3,7 +3,6 @@ package com.fooddeliveryapp.models.order;
 import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.Customer;
 import com.fooddeliveryapp.models.DeliveryPartner;
-import com.fooddeliveryapp.models.PaymentMode;
 
 import java.io.Serializable;
 import java.util.*;
@@ -25,8 +24,7 @@ public class Order implements Serializable {
 
     public Order(Customer customer) {
 
-        if (customer == null)
-            throw new IllegalArgumentException("Customer required");
+        if (customer == null) throw new IllegalArgumentException("Customer required");
 
         this.id = UUID.randomUUID().toString();
         this.customer = customer;
@@ -35,9 +33,7 @@ public class Order implements Serializable {
 
     public void addItem(OrderItem item) {
 
-        if (status != OrderStatus.CREATED)
-            throw new InvalidOperationException(
-                    "Cannot modify order after payment");
+        if (status != OrderStatus.CREATED) throw new InvalidOperationException("Cannot modify order after payment");
 
         items.add(item);
         recalculate();
@@ -55,11 +51,9 @@ public class Order implements Serializable {
     public void applyDiscount(double discountAmount) {
 
         if (status != OrderStatus.CREATED)
-            throw new InvalidOperationException(
-                    "Discount can only be applied before payment");
+            throw new InvalidOperationException("Discount can only be applied before payment");
 
-        if (discountAmount < 0)
-            throw new IllegalArgumentException("Invalid discount");
+        if (discountAmount < 0) throw new IllegalArgumentException("Invalid discount");
 
         this.discount = discountAmount;
         recalculate();
@@ -68,12 +62,7 @@ public class Order implements Serializable {
 
     public void markPaid(PaymentMode mode) {
 
-        if (status != OrderStatus.CREATED)
-            throw new InvalidOperationException(
-                    "Order already processed");
-
-        if (mode == null)
-            throw new IllegalArgumentException("Payment mode required");
+        if (status != OrderStatus.CREATED) throw new IllegalStateException("Invalid state transition.");
 
         this.paymentMode = mode;
         this.status = OrderStatus.PAID;
@@ -81,16 +70,12 @@ public class Order implements Serializable {
 
     public void assignDeliveryPartner(DeliveryPartner partner) {
 
-        if (status != OrderStatus.PAID)
-            throw new InvalidOperationException(
-                    "Order must be paid before assigning delivery");
+        if (this.status != OrderStatus.CONFIRMED_BY_ADMIN)
+            throw new IllegalStateException("Order must be confirmed before assigning delivery");
 
-        if (partner == null)
-            throw new IllegalArgumentException("Partner required");
+        if (partner == null) throw new IllegalArgumentException("Partner required");
 
-        if (!partner.isAvailable())
-            throw new InvalidOperationException(
-                    "Delivery partner not available");
+        if (!partner.isAvailable()) throw new InvalidOperationException("Delivery partner not available");
 
         this.assignedPartner = partner;
         partner.markUnavailable();
@@ -98,31 +83,61 @@ public class Order implements Serializable {
         this.status = OrderStatus.ASSIGNED;
     }
 
-    public void markDelivered() {
-
-        if (status != OrderStatus.ASSIGNED)
-            throw new InvalidOperationException(
-                    "Order not assigned");
-
-        this.status = OrderStatus.DELIVERED;
-
-        if (assignedPartner != null)
-            assignedPartner.markAvailable();
+    public String getId() {
+        return id;
     }
 
-    public String getId() { return id; }
+    public Customer getCustomer() {
+        return customer;
+    }
 
-    public Customer getCustomer() { return customer; }
+    public OrderStatus getStatus() {
+        return status;
+    }
 
-    public OrderStatus getStatus() { return status; }
+    public double getFinalAmount() {
+        return finalAmount;
+    }
 
-    public double getFinalAmount() { return finalAmount; }
+    public PaymentMode getPaymentMode() {
+        return paymentMode;
+    }
 
-    public PaymentMode getPaymentMode() { return paymentMode; }
-
-    public DeliveryPartner getAssignedPartner() { return assignedPartner; }
+    public DeliveryPartner getAssignedPartner() {
+        return assignedPartner;
+    }
 
     public List<OrderItem> getItems() {
         return Collections.unmodifiableList(items);
+    }
+
+    public void markPaymentPending() {
+        if (status != OrderStatus.CREATED) throw new IllegalStateException("Invalid state transition");
+        this.status = OrderStatus.PAYMENT_PENDING;
+    }
+
+    public void markPaid() {
+        if (status != OrderStatus.PAYMENT_PENDING) throw new IllegalStateException("Payment not expected now");
+        this.status = OrderStatus.PAID;
+    }
+
+    public void confirmByAdmin() {
+        if (status != OrderStatus.PAID) throw new IllegalStateException("Order must be paid first");
+        this.status = OrderStatus.CONFIRMED_BY_ADMIN;
+    }
+
+    public void markOutForDelivery() {
+        if (status != OrderStatus.ASSIGNED) throw new IllegalStateException("Order not assigned yet");
+        this.status = OrderStatus.OUT_FOR_DELIVERY;
+    }
+
+    public void markDelivered() {
+        if (status != OrderStatus.OUT_FOR_DELIVERY) throw new IllegalStateException("Order not out for delivery");
+        this.status = OrderStatus.DELIVERED;
+    }
+
+    public void cancel() {
+        if (status == OrderStatus.DELIVERED) throw new IllegalStateException("Cannot cancel delivered order");
+        this.status = OrderStatus.CANCELLED;
     }
 }

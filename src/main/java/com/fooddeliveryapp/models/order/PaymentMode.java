@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.models;
+package com.fooddeliveryapp.models.order;
 
 public enum PaymentMode {
     CASH,

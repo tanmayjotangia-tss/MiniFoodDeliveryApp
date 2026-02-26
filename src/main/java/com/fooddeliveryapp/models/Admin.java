@@ -11,16 +11,19 @@ public class Admin implements Serializable {
 
     public Admin(String name) {
 
-        if (name == null || name.isBlank())
-            throw new IllegalArgumentException("Admin name cannot be empty");
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Admin name cannot be empty");
 
         this.id = UUID.randomUUID().toString();
         this.name = name.trim();
     }
 
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
     @Override
     public boolean equals(Object o) {

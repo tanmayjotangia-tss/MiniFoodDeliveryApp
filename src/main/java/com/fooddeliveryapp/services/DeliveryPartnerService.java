@@ -34,4 +34,16 @@ public class DeliveryPartnerService {
     public List<DeliveryPartner> getAllPartners() {
         return repository.findAll();
     }
+
+    public DeliveryPartner findById(String partnerId) {
+
+        if (partnerId == null || partnerId.isBlank()) throw new IllegalArgumentException("Partner ID is required");
+
+        return repository.findById(partnerId)
+                .orElseThrow(() -> new EntityNotFoundException("Delivery partner not found with id: " + partnerId));
+    }
+
+    public List<DeliveryPartner> findAll() {
+        return repository.findAll();
+    }
 }

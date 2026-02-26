@@ -15,8 +15,7 @@ public class Cart implements Serializable {
 
     public Cart(Customer customer) {
 
-        if (customer == null)
-            throw new IllegalArgumentException("Customer required");
+        if (customer == null) throw new IllegalArgumentException("Customer required");
 
         this.id = UUID.randomUUID().toString();
         this.customer = customer;
@@ -24,11 +23,9 @@ public class Cart implements Serializable {
 
     public void addItem(MenuItem item, int quantity) {
 
-        Optional<CartItem> existing =
-                items.stream()
-                        .filter(ci -> ci.getItem().getId()
-                                .equals(item.getId()))
-                        .findFirst();
+        Optional<CartItem> existing = items.stream()
+                .filter(ci -> ci.getItem().getId().equals(item.getId()))
+                .findFirst();
 
         if (existing.isPresent()) {
             existing.get().increaseQuantity(quantity);
@@ -39,11 +36,7 @@ public class Cart implements Serializable {
 
     public void removeItem(String itemId) {
 
-        CartItem cartItem = items.stream()
-                .filter(ci -> ci.getItem().getId().equals(itemId))
-                .findFirst()
-                .orElseThrow(() ->
-                        new InvalidOperationException("Item not in cart"));
+        CartItem cartItem = items.stream().filter(ci -> ci.getItem().getId().equals(itemId)).findFirst().orElseThrow(() -> new InvalidOperationException("Item not in cart"));
 
         items.remove(cartItem);
     }
@@ -53,9 +46,7 @@ public class Cart implements Serializable {
     }
 
     public double calculateTotal() {
-        return items.stream()
-                .mapToDouble(CartItem::subtotal)
-                .sum();
+        return items.stream().mapToDouble(CartItem::subtotal).sum();
     }
 
     public List<CartItem> getItems() {
@@ -68,5 +59,28 @@ public class Cart implements Serializable {
 
     public String getId() {
         return id;
+    }
+
+    public void printCart() {
+
+        if (items.isEmpty()) {
+            System.out.println("Cart is empty.");
+            return;
+        }
+
+        System.out.println("\n--- YOUR CART ---");
+
+        double total = 0;
+
+        for (CartItem ci : items) {
+
+            double subtotal = ci.getItem().getPrice() * ci.getQuantity();
+
+            total += subtotal;
+
+            System.out.println(ci.getItem().getName() + " x" + ci.getQuantity() + " = ₹" + subtotal);
+        }
+
+        System.out.println("Total: ₹" + total);
     }
 }

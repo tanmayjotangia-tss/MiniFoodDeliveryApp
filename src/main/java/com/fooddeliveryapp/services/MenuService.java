@@ -26,14 +26,12 @@ public class MenuService {
         menuRepository.save(menu);
     }
 
-    public void updateItem(Menu menu,
-                           String itemId,
-                           String newName,
-                           double newPrice) {
+    public void updateItem(Menu menu, String itemId, String newName, double newPrice) {
 
         menu.updateItem(itemId, newName, newPrice);
         menuRepository.save(menu);
     }
+
     public void removeItem(Menu menu, String itemId) {
         menu.removeItem(itemId);
         menuRepository.save(menu);

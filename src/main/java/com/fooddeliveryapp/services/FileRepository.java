@@ -32,9 +32,9 @@ public class FileRepository<T> implements Repository<T> {
     @Override
     public Optional<T> findById(String id) {
 
-        return storage.stream()
-                .filter(entity -> extractId(entity).equals(id))
-                .findFirst();
+        return storage.stream().
+                filter(entity -> extractId(entity)
+                        .equals(id)).findFirst();
     }
 
     @Override
@@ -45,7 +45,8 @@ public class FileRepository<T> implements Repository<T> {
     @Override
     public void delete(String id) {
 
-        storage.removeIf(entity -> extractId(entity).equals(id));
+        storage.removeIf(entity -> extractId(entity)
+                .equals(id));
         writeToFile();
     }
 
@@ -53,11 +54,9 @@ public class FileRepository<T> implements Repository<T> {
 
         File file = new File(filePath);
 
-        if (!file.exists())
-            return new ArrayList<>();
+        if (!file.exists()) return new ArrayList<>();
 
-        try (ObjectInputStream ois =
-                     new ObjectInputStream(new FileInputStream(file))) {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
 
             return (List<T>) ois.readObject();
 
@@ -68,8 +67,7 @@ public class FileRepository<T> implements Repository<T> {
 
     private void writeToFile() {
 
-        try (ObjectOutputStream oos =
-                     new ObjectOutputStream(new FileOutputStream(filePath))) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
 
             oos.writeObject(storage);
 

@@ -12,22 +12,26 @@ public class Customer implements Serializable {
 
     public Customer(String name, String email) {
 
-        if (name == null || name.isBlank())
-            throw new IllegalArgumentException("Customer name cannot be empty");
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Customer name cannot be empty");
 
-        if (email == null || email.isBlank())
-            throw new IllegalArgumentException("Customer email cannot be empty");
+        if (email == null || email.isBlank()) throw new IllegalArgumentException("Customer email cannot be empty");
 
         this.id = UUID.randomUUID().toString();
         this.name = name.trim();
         this.email = email.trim();
     }
 
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
-    public String getEmail() { return email; }
+    public String getEmail() {
+        return email;
+    }
 
     @Override
     public boolean equals(Object o) {

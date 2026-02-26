@@ -11,25 +11,21 @@ public class CartItem implements Serializable {
 
     public CartItem(MenuItem item, int quantity) {
 
-        if (item == null)
-            throw new IllegalArgumentException("Menu item required");
+        if (item == null) throw new IllegalArgumentException("Menu item required");
 
-        if (quantity <= 0)
-            throw new IllegalArgumentException("Quantity must be positive");
+        if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
 
         this.item = item;
         this.quantity = quantity;
     }
 
     public void increaseQuantity(int qty) {
-        if (qty <= 0)
-            throw new IllegalArgumentException("Invalid quantity");
+        if (qty <= 0) throw new IllegalArgumentException("Invalid quantity");
         this.quantity += qty;
     }
 
     public void decreaseQuantity(int qty) {
-        if (qty <= 0 || qty > quantity)
-            throw new IllegalArgumentException("Invalid quantity");
+        if (qty <= 0 || qty > quantity) throw new IllegalArgumentException("Invalid quantity");
         this.quantity -= qty;
     }
 

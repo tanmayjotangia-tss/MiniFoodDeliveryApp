@@ -14,8 +14,7 @@ public class InvoicePrinter {
 
     public void print(Order order) {
 
-        DateTimeFormatter formatter =
-                DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
         String dateTime = LocalDateTime.now().format(formatter);
 
@@ -26,8 +25,7 @@ public class InvoicePrinter {
 
         System.out.printf("Order ID      : %s%n", order.getId());
         System.out.printf("Date & Time   : %s%n", dateTime);
-        System.out.printf("Customer Name : %s%n",
-                order.getCustomer().getName());
+        System.out.printf("Customer Name : %s%n", order.getCustomer().getName());
         printLine('-');
 
         printTableHeader();
@@ -44,8 +42,7 @@ public class InvoicePrinter {
 
             total += subtotal;
 
-            System.out.printf("%-22s %-6d %-10.2f %-10.2f%n",
-                    trim(name, 22), qty, price, subtotal);
+            System.out.printf("%-22s %-6d %-10.2f %-10.2f%n", trim(name, 22), qty, price, subtotal);
         }
 
         printLine('-');
@@ -54,24 +51,17 @@ public class InvoicePrinter {
 
         System.out.printf("%-40s ₹%10.2f%n", "Total Amount:", total);
         System.out.printf("%-40s ₹%10.2f%n", "Discount:", discount);
-        System.out.printf("%-40s ₹%10.2f%n",
-                "Final Amount:", order.getFinalAmount());
+        System.out.printf("%-40s ₹%10.2f%n", "Final Amount:", order.getFinalAmount());
 
         printLine('-');
 
-        System.out.printf("%-20s : %s%n",
-                "Payment Mode",
-                order.getPaymentMode());
+        System.out.printf("%-20s : %s%n", "Payment Mode", order.getPaymentMode());
 
         if (order.getAssignedPartner() != null) {
-            System.out.printf("%-20s : %s%n",
-                    "Delivery Partner",
-                    order.getAssignedPartner().getName());
+            System.out.printf("%-20s : %s%n", "Delivery Partner", order.getAssignedPartner().getName());
         }
 
-        System.out.printf("%-20s : %s%n",
-                "Order Status",
-                order.getStatus());
+        System.out.printf("%-20s : %s%n", "Order Status", order.getStatus());
 
         printLine('=');
         centerText("Thank You For Ordering!");
@@ -84,7 +74,7 @@ public class InvoicePrinter {
     // Helper Methods
     // --------------------------
 
-    private void printLine(char ch) {
+    private static void printLine(char ch) {
         for (int i = 0; i < WIDTH; i++) {
             System.out.print(ch);
         }
@@ -98,13 +88,11 @@ public class InvoicePrinter {
     }
 
     private void printTableHeader() {
-        System.out.printf("%-22s %-6s %-10s %-10s%n",
-                "Item", "Qty", "Price", "Subtotal");
+        System.out.printf("%-22s %-6s %-10s %-10s%n", "Item", "Qty", "Price", "Subtotal");
     }
 
     private String trim(String text, int maxLength) {
-        if (text.length() <= maxLength)
-            return text;
+        if (text.length() <= maxLength) return text;
         return text.substring(0, maxLength - 3) + "...";
     }
 }

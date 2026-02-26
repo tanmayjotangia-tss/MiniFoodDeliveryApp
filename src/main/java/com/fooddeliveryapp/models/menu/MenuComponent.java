@@ -7,8 +7,7 @@ public abstract class MenuComponent implements Serializable {
     protected String name;
 
     public MenuComponent(String name) {
-        if (name == null || name.isBlank())
-            throw new IllegalArgumentException("Name cannot be empty");
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name cannot be empty");
         this.name = name.trim();
     }
 
@@ -27,4 +26,6 @@ public abstract class MenuComponent implements Serializable {
     public double getPrice() {
         throw new UnsupportedOperationException();
     }
+
+    public abstract void display(String indent);
 }

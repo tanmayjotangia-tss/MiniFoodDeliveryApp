@@ -10,8 +10,7 @@ public class MenuItem extends MenuComponent {
     public MenuItem(String name, double price) {
         super(name);
 
-        if (price < 0)
-            throw new IllegalArgumentException("Invalid price");
+        if (price < 0) throw new IllegalArgumentException("Invalid price");
 
         this.id = UUID.randomUUID().toString();
         this.price = price;
@@ -26,18 +25,21 @@ public class MenuItem extends MenuComponent {
         return price;
     }
 
+    @Override
+    public void display(String indent) {
+        System.out.println(indent + "- " + name + " | ₹" + price);
+    }
+
     public void updateName(String newName) {
 
-        if (newName == null || newName.isBlank())
-            throw new IllegalArgumentException("Invalid name");
+        if (newName == null || newName.isBlank()) throw new IllegalArgumentException("Invalid name");
 
         this.name = newName.trim();
     }
 
     public void updatePrice(double newPrice) {
 
-        if (newPrice < 0)
-            throw new IllegalArgumentException("Invalid price");
+        if (newPrice < 0) throw new IllegalArgumentException("Invalid price");
 
         this.price = newPrice;
     }

@@ -15,6 +15,7 @@ import com.fooddeliveryapp.services.discount.AmountDiscount;
 import com.fooddeliveryapp.utils.InputUtil;
 
 import java.util.List;
+import java.util.function.Function;
 
 public class AdminController {
 
@@ -24,11 +25,7 @@ public class AdminController {
     private final OrderService orderService;
     private final Menu menu;
 
-    public AdminController(MenuService menuService,
-                           DeliveryPartnerService deliveryService,
-                           DiscountService discountService,
-                           OrderService orderService,
-                           Menu menu) {
+    public AdminController(MenuService menuService, DeliveryPartnerService deliveryService, DiscountService discountService, OrderService orderService, Menu menu) {
 
         this.menuService = menuService;
         this.deliveryService = deliveryService;
@@ -45,7 +42,7 @@ public class AdminController {
             System.out.println("1. Manage Menu");
             System.out.println("2. Manage Delivery Partners");
             System.out.println("3. Manage Discount");
-            System.out.println("4. View Order History");
+            System.out.println("4. Manage Orders");
             System.out.println("5. Revenue Summary");
             System.out.println("6. Back");
 
@@ -55,9 +52,12 @@ public class AdminController {
                 case 1 -> manageMenu();
                 case 2 -> manageDeliveryPartners();
                 case 3 -> manageDiscount();
-                case 4 -> viewOrderHistory();
+//                case 4 -> viewOrderHistory();
+                case 4 -> manageOrders();
                 case 5 -> showRevenueSummary();
-                case 6 -> { return; }
+                case 6 -> {
+                    return;
+                }
                 default -> System.out.println("Invalid option.");
             }
         }
@@ -88,7 +88,9 @@ public class AdminController {
                 case 3 -> updateItem();
                 case 4 -> removeItem();
                 case 5 -> removeCategory();
-                case 6 -> { return; }
+                case 6 -> {
+                    return;
+                }
                 default -> System.out.println("Invalid option.");
             }
         }
@@ -111,22 +113,18 @@ public class AdminController {
 
         displayMenuStructure();
 
-        String categoryName =
-                InputUtil.readString("Enter category name to add item: ");
+        String categoryName = InputUtil.readString("Enter category name to add item: ");
 
-        MenuCategory category =
-                findCategoryByName(categoryName);
+        MenuCategory category = findCategoryByName(categoryName);
 
         if (category == null) {
             System.out.println("Category not found.");
             return;
         }
 
-        String itemName =
-                InputUtil.readString("Enter item name: ");
+        String itemName = InputUtil.readString("Enter item name: ");
 
-        double price =
-                InputUtil.readDouble("Enter item price: ");
+        double price = InputUtil.readDouble("Enter item price: ");
 
         try {
             MenuItem item = new MenuItem(itemName, price);
@@ -141,14 +139,11 @@ public class AdminController {
 
         displayMenuItems();
 
-        String itemId =
-                InputUtil.readString("Enter Item ID to update: ");
+        String itemId = InputUtil.readString("Enter Item ID to update: ");
 
-        String newName =
-                InputUtil.readString("Enter new name: ");
+        String newName = InputUtil.readString("Enter new name: ");
 
-        double newPrice =
-                InputUtil.readDouble("Enter new price: ");
+        double newPrice = InputUtil.readDouble("Enter new price: ");
 
         try {
             menuService.updateItem(menu, itemId, newName, newPrice);
@@ -162,8 +157,7 @@ public class AdminController {
 
         displayMenuItems();
 
-        String itemId =
-                InputUtil.readString("Enter Item ID to remove: ");
+        String itemId = InputUtil.readString("Enter Item ID to remove: ");
 
         try {
             menuService.removeItem(menu, itemId);
@@ -177,8 +171,7 @@ public class AdminController {
 
         displayMenuStructure();
 
-        String categoryName =
-                InputUtil.readString("Enter category name to remove: ");
+        String categoryName = InputUtil.readString("Enter category name to remove: ");
 
         try {
             menuService.removeCategory(menu, categoryName);
@@ -210,7 +203,9 @@ public class AdminController {
                 case 2 -> removePartner();
                 case 3 -> updatePartnerPay();
                 case 4 -> viewPartners();
-                case 5 -> { return; }
+                case 5 -> {
+                    return;
+                }
                 default -> System.out.println("Invalid option.");
             }
         }
@@ -218,15 +213,12 @@ public class AdminController {
 
     private void addPartner() {
 
-        String name =
-                InputUtil.readString("Enter partner name: ");
+        String name = InputUtil.readString("Enter partner name: ");
 
-        double pay =
-                InputUtil.readDouble("Enter basic pay: ");
+        double pay = InputUtil.readDouble("Enter basic pay: ");
 
         try {
-            DeliveryPartner partner =
-                    new DeliveryPartner(name, pay);
+            DeliveryPartner partner = new DeliveryPartner(name, pay);
 
             deliveryService.addPartner(partner);
 
@@ -237,29 +229,22 @@ public class AdminController {
     }
 
     private void removePartner() {
+        List<DeliveryPartner> partners = deliveryService.getAllPartners();
 
-        viewPartners();
+        DeliveryPartner selected = selectFromList(partners, p -> "Name: " + p.getName() + " | ID: " + p.getId());
 
-        String id =
-                InputUtil.readString("Enter partner ID to remove: ");
+        if (selected == null) return;
 
-        try {
-            deliveryService.removePartner(id);
-            System.out.println("Partner removed.");
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
+        deliveryService.removePartner(selected.getId());
     }
 
     private void updatePartnerPay() {
 
         viewPartners();
 
-        String id =
-                InputUtil.readString("Enter partner ID: ");
+        String id = InputUtil.readString("Enter partner ID: ");
 
-        double pay =
-                InputUtil.readDouble("Enter new basic pay: ");
+        double pay = InputUtil.readDouble("Enter new basic pay: ");
 
         try {
             deliveryService.updateBasicPay(id, pay);
@@ -271,15 +256,12 @@ public class AdminController {
 
     private void viewPartners() {
 
-        List<DeliveryPartner> partners =
-                deliveryService.getAllPartners();
+        List<DeliveryPartner> partners = deliveryService.getAllPartners();
 
         System.out.println("\n--- DELIVERY PARTNERS ---");
 
         for (DeliveryPartner partner : partners) {
-            System.out.println("ID: " + partner.getId()
-                    + " | Name: " + partner.getName()
-                    + " | Available: " + partner.isAvailable());
+            System.out.println("ID: " + partner.getId() + " | Name: " + partner.getName() + " | Available: " + partner.isAvailable());
         }
     }
 
@@ -289,15 +271,11 @@ public class AdminController {
 
     private void manageDiscount() {
 
-        double threshold =
-                InputUtil.readDouble("Enter threshold amount: ");
+        double threshold = InputUtil.readDouble("Enter threshold amount: ");
 
-        double percentage =
-                InputUtil.readDouble("Enter discount percentage: ");
+        double percentage = InputUtil.readDouble("Enter discount percentage: ");
 
-        discountService.updateStrategy(
-                new AmountDiscount(threshold, percentage)
-        );
+        discountService.updateStrategy(new AmountDiscount(threshold, percentage));
 
         System.out.println("Discount policy updated.");
     }
@@ -308,29 +286,20 @@ public class AdminController {
 
     private void viewOrderHistory() {
 
-        List<Order> orders =
-                orderService.getAllOrders();
+        List<Order> orders = orderService.getAllOrders();
 
         System.out.println("\n--- ORDER HISTORY ---");
 
         for (Order order : orders) {
-            System.out.println("Order ID: " + order.getId()
-                    + " | Customer: "
-                    + order.getCustomer().getName()
-                    + " | Final Amount: ₹"
-                    + order.getFinalAmount()
-                    + " | Status: "
-                    + order.getStatus());
+            System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomer().getName() + " | Final Amount: ₹" + order.getFinalAmount() + " | Status: " + order.getStatus());
         }
     }
 
     private void showRevenueSummary() {
 
-        double revenue =
-                orderService.calculateTotalRevenue();
+        double revenue = orderService.calculateTotalRevenue();
 
-        long totalOrders =
-                orderService.getTotalOrders();
+        long totalOrders = orderService.getTotalOrders();
 
         System.out.println("\n====== REVENUE SUMMARY ======");
         System.out.println("Total Orders : " + totalOrders);
@@ -346,12 +315,10 @@ public class AdminController {
 
         System.out.println("\n--- CURRENT MENU ---");
 
-        for (MenuComponent component :
-                menu.getRootCategory().getComponents()) {
+        for (MenuComponent component : menu.getRootCategory().getComponents()) {
 
             if (component instanceof MenuCategory category) {
-                System.out.println("Category: "
-                        + category.getName());
+                System.out.println("Category: " + category.getName());
             }
         }
     }
@@ -360,22 +327,15 @@ public class AdminController {
 
         System.out.println("\n--- MENU ITEMS ---");
 
-        for (MenuComponent component :
-                menu.getRootCategory().getComponents()) {
+        for (MenuComponent component : menu.getRootCategory().getComponents()) {
 
             if (component instanceof MenuCategory category) {
 
-                for (MenuComponent item :
-                        category.getComponents()) {
+                for (MenuComponent item : category.getComponents()) {
 
                     if (item instanceof MenuItem menuItem) {
 
-                        System.out.println("ID: "
-                                + menuItem.getId()
-                                + " | Name: "
-                                + menuItem.getName()
-                                + " | Price: ₹"
-                                + menuItem.getPrice());
+                        System.out.println("ID: " + menuItem.getId() + " | Name: " + menuItem.getName() + " | Price: ₹" + menuItem.getPrice());
                     }
                 }
             }
@@ -384,16 +344,122 @@ public class AdminController {
 
     private MenuCategory findCategoryByName(String name) {
 
-        for (MenuComponent component :
-                menu.getRootCategory().getComponents()) {
+        for (MenuComponent component : menu.getRootCategory().getComponents()) {
 
             if (component instanceof MenuCategory category) {
 
-                if (category.getName()
-                        .equalsIgnoreCase(name.trim()))
-                    return category;
+                if (category.getName().equalsIgnoreCase(name.trim())) return category;
             }
         }
         return null;
+    }
+
+    private void manageOrders() {
+
+        List<Order> orders = orderService.getAllOrders();
+
+        if (orders.isEmpty()) {
+            System.out.println("No orders found.");
+            return;
+        }
+
+        System.out.println("\n=== ORDER LIST ===");
+
+        for (int i = 0; i < orders.size(); i++) {
+            Order o = orders.get(i);
+            System.out.println((i + 1) + ". ID: " + o.getId() + " | Customer: " + o.getCustomer().getName() + " | Status: " + o.getStatus());
+        }
+
+        int choice = InputUtil.readInt("Select order (0 to back): ");
+
+        if (choice == 0) return;
+
+        if (choice < 1 || choice > orders.size()) {
+            System.out.println("Invalid choice.");
+            return;
+        }
+
+        Order selected = orders.get(choice - 1);
+
+        manageSingleOrder(selected);
+    }
+
+    private void manageSingleOrder(Order order) {
+
+        while (true) {
+
+            System.out.println("\nManaging Order ID: " + order.getId());
+            System.out.println("Current Status: " + order.getStatus());
+
+            System.out.println("1. Confirm Order");
+            System.out.println("2. Assign Delivery Partner");
+            System.out.println("3. Cancel Order");
+            System.out.println("4. Back");
+
+            int choice = InputUtil.readInt("Enter choice: ");
+
+            try {
+
+                switch (choice) {
+
+                    case 1 -> {
+                        orderService.confirmOrder(order.getId());
+                        System.out.println("Order Confirmed.");
+                    }
+
+                    case 2 -> {
+                        List<DeliveryPartner> partners = deliveryService.getAllPartners();
+
+                        DeliveryPartner selectedPartner = selectFromList(partners, p -> "Name: " + p.getName() + " | Available: " + p.isAvailable());
+
+                        if (selectedPartner == null) return;
+
+                        orderService.assignPartner(order.getId(), selectedPartner.getId());
+
+                        System.out.println("Partner assigned successfully.");
+
+                        System.out.println("Partner Assigned.");
+                    }
+
+                    case 3 -> {
+                        orderService.cancelOrderByAdmin(order.getId());
+                        System.out.println("Order Cancelled.");
+                    }
+
+                    case 4 -> {
+                        return;
+                    }
+
+                    default -> System.out.println("Invalid choice.");
+                }
+
+            } catch (Exception e) {
+                System.out.println("Error: " + e.getMessage());
+            }
+        }
+    }
+
+
+    private <T> T selectFromList(List<T> list, Function<T, String> displayMapper) {
+
+        if (list.isEmpty()) {
+            System.out.println("No items available.");
+            return null;
+        }
+
+        for (int i = 0; i < list.size(); i++) {
+            System.out.println((i + 1) + ". " + displayMapper.apply(list.get(i)));
+        }
+
+        int choice = InputUtil.readInt("Enter choice (0 to cancel): ");
+
+        if (choice == 0) return null;
+
+        if (choice < 1 || choice > list.size()) {
+            System.out.println("Invalid selection.");
+            return null;
+        }
+
+        return list.get(choice - 1);
     }
 }

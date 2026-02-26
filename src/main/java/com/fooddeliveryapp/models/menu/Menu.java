@@ -4,6 +4,7 @@ import com.fooddeliveryapp.exception.DuplicateEntityException;
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,17 +32,14 @@ public class Menu implements Serializable {
 
     public void addCategory(MenuCategory category) {
 
-        boolean exists = rootCategory.getComponents().stream()
+        boolean exists = rootCategory.getComponents()
+                .stream()
                 .filter(c -> c instanceof MenuCategory)
                 .map(c -> (MenuCategory) c)
-                .anyMatch(c ->
-                        c.getName()
-                                .equalsIgnoreCase(category.getName()));
+                .anyMatch(c -> c.getName()
+                        .equalsIgnoreCase(category.getName()));
 
-        if (exists)
-            throw new DuplicateEntityException(
-                    "Category already exists: " +
-                            category.getName());
+        if (exists) throw new DuplicateEntityException("Category already exists: " + category.getName());
 
         rootCategory.add(category);
     }
@@ -59,43 +57,29 @@ public class Menu implements Serializable {
         for (MenuComponent component : category.getComponents()) {
 
             if (component instanceof MenuItem item) {
-                if (item.getId().equals(itemId))
-                    return item;
+                if (item.getId().equals(itemId)) return item;
             }
 
             if (component instanceof MenuCategory subCategory) {
                 MenuItem result = findItemRecursive(subCategory, itemId);
-                if (result != null)
-                    return result;
+                if (result != null) return result;
             }
         }
 
         throw new EntityNotFoundException("Menu item not found");
     }
 
-    public void updateItem(String itemId,
-                           String newName,
-                           double newPrice) {
+    public void updateItem(String itemId, String newName, double newPrice) {
 
         MenuItem item = findItemById(itemId);
 
-        MenuCategory parentCategory =
-                findParentCategory(rootCategory, itemId);
+        MenuCategory parentCategory = findParentCategory(rootCategory, itemId);
 
-        if (parentCategory == null)
-            throw new RuntimeException("Parent category not found");
+        if (parentCategory == null) throw new RuntimeException("Parent category not found");
 
-        boolean duplicateName = parentCategory.getComponents().stream()
-                .filter(c -> c instanceof MenuItem)
-                .map(c -> (MenuItem) c)
-                .anyMatch(i ->
-                        !i.getId().equals(itemId) &&
-                                i.getName()
-                                        .equalsIgnoreCase(newName.trim()));
+        boolean duplicateName = parentCategory.getComponents().stream().filter(c -> c instanceof MenuItem).map(c -> (MenuItem) c).anyMatch(i -> !i.getId().equals(itemId) && i.getName().equalsIgnoreCase(newName.trim()));
 
-        if (duplicateName)
-            throw new RuntimeException(
-                    "Item with same name already exists in this category");
+        if (duplicateName) throw new RuntimeException("Item with same name already exists in this category");
 
         item.updateName(newName);
         item.updatePrice(newPrice);
@@ -105,55 +89,68 @@ public class Menu implements Serializable {
 
         MenuCategory parent = findParentCategory(rootCategory, itemId);
 
-        if (parent == null)
-            throw new RuntimeException("Item not found");
+        if (parent == null) throw new RuntimeException("Item not found");
 
-        parent.getComponents().stream()
-                .filter(c -> c instanceof MenuItem)
-                .map(c -> (MenuItem) c)
-                .filter(i -> i.getId().equals(itemId))
-                .findFirst()
-                .ifPresentOrElse(
-                        parent::remove,
-                        () -> { throw new RuntimeException("Item not found"); }
-                );
+        parent.getComponents().stream().filter(c -> c instanceof MenuItem).map(c -> (MenuItem) c).filter(i -> i.getId().equals(itemId)).findFirst().ifPresentOrElse(parent::remove, () -> {
+            throw new RuntimeException("Item not found");
+        });
     }
 
     public void removeCategory(String categoryName) {
 
-        MenuComponent category =
-                rootCategory.getComponents().stream()
-                        .filter(c -> c instanceof MenuCategory)
-                        .filter(c -> c.getName()
-                                .equalsIgnoreCase(categoryName.trim()))
-                        .findFirst()
-                        .orElseThrow(() ->
-                                new RuntimeException("Category not found"));
+        MenuComponent category = rootCategory.getComponents()
+                .stream()
+                .filter(c -> c instanceof MenuCategory)
+                .filter(c -> c.getName().equalsIgnoreCase(categoryName.trim()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Category not found"));
 
         rootCategory.remove(category);
     }
 
-    private MenuCategory findParentCategory(MenuCategory category,
-                                            String itemId) {
+    private MenuCategory findParentCategory(MenuCategory category, String itemId) {
 
-        for (MenuComponent component :
-                category.getComponents()) {
+        for (MenuComponent component : category.getComponents()) {
 
             if (component instanceof MenuItem item) {
 
-                if (item.getId().equals(itemId))
-                    return category;
+                if (item.getId().equals(itemId)) return category;
             }
 
             if (component instanceof MenuCategory subCategory) {
 
-                MenuCategory result =
-                        findParentCategory(subCategory, itemId);
+                MenuCategory result = findParentCategory(subCategory, itemId);
 
-                if (result != null)
-                    return result;
+                if (result != null) return result;
             }
         }
         return null;
+    }
+
+    public List<MenuItem> getAllItems() {
+
+        List<MenuItem> items = new ArrayList<>();
+        collectItems(rootCategory, items);
+        return items;
+    }
+
+    private void collectItems(MenuComponent component, List<MenuItem> items) {
+
+        if (component instanceof MenuItem item) {
+            items.add(item);
+            return;
+        }
+
+        if (component instanceof MenuCategory category) {
+            for (MenuComponent child : category.getComponents()) {
+                collectItems(child, items);
+            }
+        }
+    }
+
+    public void displayMenu() {
+        System.out.println("\n========== MENU ==========");
+        rootCategory.display("");
+        System.out.println("==========================\n");
     }
 }

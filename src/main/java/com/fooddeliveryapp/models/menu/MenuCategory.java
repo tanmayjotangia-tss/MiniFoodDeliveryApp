@@ -19,17 +19,9 @@ public class MenuCategory extends MenuComponent {
 
         if (component instanceof MenuCategory category) {
 
-            boolean exists = components.stream()
-                    .filter(c -> c instanceof MenuCategory)
-                    .map(c -> (MenuCategory) c)
-                    .anyMatch(c ->
-                            c.getName()
-                                    .equalsIgnoreCase(category.getName()));
+            boolean exists = components.stream().filter(c -> c instanceof MenuCategory).map(c -> (MenuCategory) c).anyMatch(c -> c.getName().equalsIgnoreCase(category.getName()));
 
-            if (exists)
-                throw new DuplicateEntityException(
-                        "Category already exists: " +
-                                category.getName());
+            if (exists) throw new DuplicateEntityException("Category already exists: " + category.getName());
         }
 
         if (component instanceof MenuItem item) {
@@ -37,14 +29,10 @@ public class MenuCategory extends MenuComponent {
             boolean exists = components.stream()
                     .filter(c -> c instanceof MenuItem)
                     .map(c -> (MenuItem) c)
-                    .anyMatch(i ->
-                            i.getName()
-                                    .equalsIgnoreCase(item.getName()));
+                    .anyMatch(i -> i.getName()
+                            .equalsIgnoreCase(item.getName()));
 
-            if (exists)
-                throw new DuplicateEntityException(
-                        "Item already exists: " +
-                                item.getName());
+            if (exists) throw new DuplicateEntityException("Item already exists: " + item.getName());
         }
 
         components.add(component);
@@ -53,6 +41,16 @@ public class MenuCategory extends MenuComponent {
     @Override
     public void remove(MenuComponent component) {
         components.remove(component);
+    }
+
+    @Override
+    public void display(String indent) {
+
+        System.out.println(indent + "Category: " + name);
+
+        for (MenuComponent component : components) {
+            component.display(indent + "   ");
+        }
     }
 
     public List<MenuComponent> getComponents() {

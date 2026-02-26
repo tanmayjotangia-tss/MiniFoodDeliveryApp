@@ -1,26 +1,24 @@
 package com.fooddeliveryapp.controllers;
 
 import com.fooddeliveryapp.models.Customer;
-import com.fooddeliveryapp.models.PaymentMode;
 import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
 import com.fooddeliveryapp.models.menu.Menu;
-import com.fooddeliveryapp.models.menu.MenuCategory;
-import com.fooddeliveryapp.models.menu.MenuComponent;
 import com.fooddeliveryapp.models.menu.MenuItem;
 import com.fooddeliveryapp.models.order.Order;
-import com.fooddeliveryapp.models.order.OrderItem;
-import com.fooddeliveryapp.services.InvoicePrinter;
+import com.fooddeliveryapp.models.order.PaymentMode;
 import com.fooddeliveryapp.services.OrderService;
-import com.fooddeliveryapp.services.payment.PaymentFactory;
 import com.fooddeliveryapp.services.payment.PaymentStrategy;
+import com.fooddeliveryapp.services.payment.PaymentFactory;
+import com.fooddeliveryapp.services.InvoicePrinter;
 import com.fooddeliveryapp.utils.InputUtil;
+
+import java.util.List;
 
 public class CustomerController {
 
     private final OrderService orderService;
     private final Menu menu;
-    private final InvoicePrinter invoicePrinter = new InvoicePrinter();
 
     public CustomerController(OrderService orderService, Menu menu) {
         this.orderService = orderService;
@@ -29,8 +27,9 @@ public class CustomerController {
 
     public void start() {
 
-        String name = InputUtil.readValidName("Enter your name: ");
-        String email = InputUtil.readEmail("Enter your email: ");
+        String name = InputUtil.readString("Enter your name: ");
+
+        String email = InputUtil.readString("Enter your email: ");
 
         Customer customer = new Customer(name, email);
 
@@ -38,88 +37,122 @@ public class CustomerController {
 
         while (true) {
 
-            displayMenu();
+            menu.getAllItems();
 
-            System.out.println("\n1. Add Item");
+            System.out.println("1. Add Item");
             System.out.println("2. Remove Item");
             System.out.println("3. View Cart");
             System.out.println("4. Checkout");
+            System.out.println("5. Back");
 
             int choice = InputUtil.readInt("Enter choice: ");
 
             switch (choice) {
 
-                case 1 -> {
-                    String itemId = InputUtil.readString("Enter Item ID: ");
-                    int qty = InputUtil.readInt("Enter quantity: ");
+                case 1 -> addItemToCart(cart);
 
-                    MenuItem item = menu.findItemById(itemId);
-                    cart.addItem(item, qty);
-                }
+                case 2 -> removeItemFromCart(cart);
 
-                case 2 -> {
-                    String itemId = InputUtil.readString("Enter Item ID to remove: ");
-                    cart.removeItem(itemId);
-                }
+                case 3 -> cart.printCart();
 
-                case 3 -> printCart(cart);
+                case 4 -> checkout(cart);
 
-                case 4 -> {
-                    String paymentInput =
-                            InputUtil.readString("Payment mode (cash/upi): ");
-
-                    PaymentMode mode =
-                            PaymentMode.valueOf(paymentInput.toUpperCase());
-
-                    PaymentStrategy strategy =
-                            PaymentFactory.getStrategy(paymentInput);
-
-                    Order order = orderService.checkoutCart(
-                            cart, strategy, mode);
-
-                    new InvoicePrinter().print(order);
+                case 5 -> {
                     return;
                 }
 
-                default -> System.out.println("Invalid option");
+                default -> System.out.println("Invalid choice.");
             }
         }
     }
 
-    private void displayMenu() {
 
-        System.out.println("\n--- MENU ---");
+    private void addItemToCart(Cart cart) {
 
-        for (MenuComponent component :
-                menu.getRootCategory().getComponents()) {
+        menu.displayMenu();
 
-            if (component instanceof MenuCategory category) {
+        List<MenuItem> items = menu.getAllItems();
 
-                System.out.println("\nCategory: " + category.getName());
-
-                for (MenuComponent item : category.getComponents()) {
-                    if (item instanceof MenuItem menuItem) {
-                        System.out.println("ID: " + menuItem.getId()
-                                + " | " + menuItem.getName()
-                                + " | ₹" + menuItem.getPrice());
-                    }
-                }
-            }
+        if (items.isEmpty()) {
+            System.out.println("No items available.");
+            return;
         }
+
+        System.out.println("\nSelect Item:");
+
+        for (int i = 0; i < items.size(); i++) {
+            MenuItem item = items.get(i);
+            System.out.println((i + 1) + ". " + item.getName() + " | ₹" + item.getPrice());
+        }
+
+        int selection = InputUtil.readInt("Enter choice (0 to cancel): ");
+
+        if (selection == 0) return;
+
+        if (selection < 1 || selection > items.size()) {
+            System.out.println("Invalid selection.");
+            return;
+        }
+
+        MenuItem selectedItem = items.get(selection - 1);
+
+        int quantity = InputUtil.readInt("Enter quantity: ");
+
+        cart.addItem(selectedItem, quantity);
+
+        System.out.println("Item added to cart.");
     }
-    private void printCart(Cart cart) {
 
-        System.out.println("\n--- YOUR CART ---");
+    private void removeItemFromCart(Cart cart) {
 
-        for (CartItem item : cart.getItems()) {
+        List<CartItem> items = cart.getItems();
 
-            System.out.println(
-                    item.getItem().getName() +
-                            " x" + item.getQuantity() +
-                            " = ₹" + item.subtotal()
-            );
+        if (items.isEmpty()) {
+            System.out.println("Cart is empty.");
+            return;
         }
 
-        System.out.println("Total: ₹" + cart.calculateTotal());
+        System.out.println("\nSelect Item to Remove:");
+
+        for (int i = 0; i < items.size(); i++) {
+            CartItem ci = items.get(i);
+            System.out.println((i + 1) + ". " + ci.getItem() + " x" + ci.getQuantity());
+        }
+
+        int selection = InputUtil.readInt("Enter choice (0 to cancel): ");
+
+        if (selection == 0) return;
+
+        if (selection < 1 || selection > items.size()) {
+            System.out.println("Invalid selection.");
+            return;
+        }
+
+        CartItem selected = items.get(selection - 1);
+
+        cart.removeItem(String.valueOf(selected.getItem()));
+
+        System.out.println("Item removed from cart.");
+    }
+
+
+    private void checkout(Cart cart) {
+
+        if (cart.getItems().isEmpty()) {
+            System.out.println("Cart is empty.");
+            return;
+        }
+
+        String modeInput = InputUtil.readString("Payment mode (cash/upi): ");
+
+        PaymentMode mode = PaymentMode.valueOf(modeInput.toUpperCase());
+
+        PaymentStrategy strategy = PaymentFactory.getStrategy(String.valueOf(mode));
+
+        Order order = orderService.checkoutCart(cart, strategy, mode);
+
+        System.out.println("Payment Successful.");
+
+        new InvoicePrinter().print(order);
     }
 }
