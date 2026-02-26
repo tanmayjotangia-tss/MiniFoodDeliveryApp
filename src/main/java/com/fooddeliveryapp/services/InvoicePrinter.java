@@ -3,6 +3,7 @@ package com.fooddeliveryapp.services;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderItem;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
+import com.fooddeliveryapp.models.users.User;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,7 +27,8 @@ public class InvoicePrinter {
 
         System.out.printf("Order ID      : %s%n", order.getId());
         System.out.printf("Date & Time   : %s%n", dateTime);
-        System.out.printf("Customer Name : %s%n", order.getCustomer().getName());
+        System.out.printf("%-15s : %s%n", "Customer", order.getCustomerName());
+
         printLine('-');
 
         printTableHeader();

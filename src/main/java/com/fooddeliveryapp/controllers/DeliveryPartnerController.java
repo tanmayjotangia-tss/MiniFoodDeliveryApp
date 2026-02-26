@@ -1,7 +1,10 @@
 package com.fooddeliveryapp.controllers;
 
 import com.fooddeliveryapp.models.order.Order;
+import com.fooddeliveryapp.models.order.OrderStatus;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
+import com.fooddeliveryapp.models.users.User;
+import com.fooddeliveryapp.services.AuthService;
 import com.fooddeliveryapp.services.DeliveryPartnerService;
 import com.fooddeliveryapp.services.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
@@ -12,59 +15,77 @@ public class DeliveryPartnerController {
 
     private final OrderService orderService;
     private final DeliveryPartnerService partnerService;
+    private final AuthService authService;
 
-    public DeliveryPartnerController(OrderService orderService, DeliveryPartnerService partnerService) {
+    private DeliveryPartner loggedInPartner;
+
+    public DeliveryPartnerController(OrderService orderService,
+                                     DeliveryPartnerService partnerService,
+                                     AuthService authService) {
         this.orderService = orderService;
         this.partnerService = partnerService;
+        this.authService = authService;
     }
 
     public void start() {
 
-        String partnerId = InputUtil.readString("Enter your Partner ID: ");
-
-        DeliveryPartner partner = partnerService.findById(partnerId);
-
-        if (partner == null) {
-            System.out.println("Invalid Partner ID.");
-            return;
-        }
-
         while (true) {
 
-            System.out.println("\n=== DELIVERY PARTNER PANEL ===");
-            System.out.println("1. View Assigned Orders");
-            System.out.println("2. Accept Order");
-            System.out.println("3. Mark Delivered");
-            System.out.println("4. Back");
+            System.out.println("\n====== DELIVERY PARTNER PANEL ======");
+            System.out.println("1. Login");
+            System.out.println("2. Register");
+            System.out.println("3. View Assigned Orders");
+            System.out.println("4. Accept Order");
+            System.out.println("5. Mark Delivered");
+            System.out.println("6. View Order History");
+            System.out.println("7. Logout");
+            System.out.println("8. Back");
 
             int choice = InputUtil.readInt("Enter choice: ");
 
-            try {
+            switch (choice) {
 
-                switch (choice) {
+                case 1 -> login();
+                case 2 -> register();
+                case 3 -> requireLogin(this::viewOrders);
+                case 4 -> requireLogin(this::acceptOrder);
+                case 5 -> requireLogin(this::deliverOrder);
+                case 6 -> requireLogin(this::viewDeliveryHistory);
+                case 7 -> logout();
+                case 8 -> { return; }
 
-                    case 1 -> viewOrders(partner);
-
-                    case 2 -> acceptOrder(partner);
-
-                    case 3 -> deliverOrder(partner);
-
-                    case 4 -> {
-                        return;
-                    }
-
-                    default -> System.out.println("Invalid choice.");
-                }
-
-            } catch (Exception e) {
-                System.out.println("Error: " + e.getMessage());
+                default -> System.out.println("Invalid choice.");
             }
         }
     }
 
-    private void viewOrders(DeliveryPartner partner) {
+    private void viewDeliveryHistory() {
+        List<Order> delivered = orderService
+                .getOrdersByPartner(loggedInPartner.getId())
+                .stream()
+                .filter(o -> o.getStatus() == OrderStatus.DELIVERED)
+                .toList();
 
-        List<Order> orders = orderService.getOrdersByPartner(partner.getId());
+        if (delivered.isEmpty()) {
+            System.out.println("No delivered orders yet.");
+            return;
+        }
+
+        System.out.println("\n=== DELIVERY HISTORY ===");
+
+        for (int i = 0; i < delivered.size(); i++) {
+            Order o = delivered.get(i);
+            System.out.println((i + 1) + ". ID: "
+                    + o.getId()
+                    + " | Amount: ₹"
+                    + o.getTotalAmount());
+        }
+    }
+
+    private void viewOrders() {
+
+        List<Order> orders =
+                orderService.getOrdersByPartner(loggedInPartner.getId());
 
         if (orders.isEmpty()) {
             System.out.println("No assigned orders.");
@@ -74,56 +95,71 @@ public class DeliveryPartnerController {
         System.out.println("\nAssigned Orders:");
 
         for (int i = 0; i < orders.size(); i++) {
-
             Order o = orders.get(i);
-
-            System.out.println((i + 1) + ". ID: " + o.getId() + " | Status: " + o.getStatus() + " | Amount: " + o.getTotalAmount());
+            System.out.println((i + 1) + ". ID: "
+                    + o.getId()
+                    + " | Name: "
+                    + o.getCustomerName()
+                    + " | Status: "
+                    + o.getStatus()
+                    + " | Amount: ₹"
+                    + o.getTotalAmount());
         }
     }
+    private void acceptOrder() {
 
-    private void acceptOrder(DeliveryPartner partner) {
-        List<Order> orders = orderService.getOrdersByPartner(partner.getId()).stream().filter(o -> o.getStatus().equals("ASSIGNED")).toList();
+        List<Order> orders =
+                orderService.getOrdersByPartner(loggedInPartner.getId())
+                        .stream()
+                        .filter(o -> o.getStatus() == OrderStatus.ASSIGNED)
+                        .toList();
 
         if (orders.isEmpty()) {
-            System.out.println("No orders available to accept.");
+            System.out.println("No orders available.");
             return;
         }
 
-        Order selected = selectOrderFromList(orders);
-
+        Order selected = selectOrder(orders);
         if (selected == null) return;
 
-        orderService.acceptOrder(selected.getId(), partner.getId());
+        orderService.acceptOrder(selected.getId(),
+                loggedInPartner.getId());
 
-        System.out.println("Order accepted. Out for delivery.");
+        System.out.println("Order accepted.");
     }
 
+    private void deliverOrder() {
 
-    private void deliverOrder(DeliveryPartner partner) {
-        List<Order> orders = orderService.getOrdersByPartner(partner.getId()).stream().filter(o -> o.getStatus().equals("OUT_FOR_DELIVERY")).toList();
+        List<Order> orders =
+                orderService.getOrdersByPartner(loggedInPartner.getId())
+                        .stream()
+                        .filter(o -> o.getStatus() == OrderStatus.OUT_FOR_DELIVERY)
+                        .toList();
 
         if (orders.isEmpty()) {
-            System.out.println("No orders ready for delivery.");
+            System.out.println("No orders ready.");
             return;
         }
 
-        Order selected = selectOrderFromList(orders);
-
+        Order selected = selectOrder(orders);
         if (selected == null) return;
 
-        orderService.deliverOrder(selected.getId(), partner.getId());
+        orderService.deliverOrder(selected.getId(),
+                loggedInPartner.getId());
 
         System.out.println("Order delivered successfully.");
-        partner.setAvailable(true);
-    }
 
-    private Order selectOrderFromList(List<Order> orders) {
+    }
+    private Order selectOrder(List<Order> orders) {
 
         System.out.println("\nSelect Order:");
 
         for (int i = 0; i < orders.size(); i++) {
             Order o = orders.get(i);
-            System.out.println((i + 1) + ". ID: " + o.getId() + " | Status: " + o.getStatus());
+            System.out.println((i + 1) + ". "
+                    + o.getCustomerName()
+                    + " | ₹" + o.getTotalAmount()
+                    + " | " + o.getStatus());
         }
 
         int choice = InputUtil.readInt("Enter choice (0 to cancel): ");
@@ -137,7 +173,6 @@ public class DeliveryPartnerController {
 
         return orders.get(choice - 1);
     }
-
 
     private DeliveryPartner selectPartner() {
 
@@ -164,5 +199,45 @@ public class DeliveryPartnerController {
         }
 
         return partners.get(choice - 1);
+    }
+
+    private void login() {
+
+        String email = InputUtil.readString("Enter Email: ");
+        String password = InputUtil.readString("Enter Password: ");
+
+        User user = authService.login(email, password);
+
+        if (user instanceof DeliveryPartner partner) {
+            loggedInPartner = partner;
+            System.out.println("Delivery Partner logged in successfully.");
+        } else {
+            System.out.println("Invalid credentials.");
+        }
+    }
+
+    private void register() {
+
+        String name = InputUtil.readString("Enter Name: ");
+        String email = InputUtil.readString("Enter Email: ");
+        String phone = InputUtil.readString("Enter Phone: ");
+        String password = InputUtil.readString("Enter Password: ");
+
+        authService.register(name, email, phone, password, "DELIVERY");
+    }
+
+    private void requireLogin(Runnable action) {
+
+        if (loggedInPartner == null) {
+            System.out.println("Please login first.");
+            return;
+        }
+
+        action.run();
+    }
+
+    private void logout() {
+        loggedInPartner = null;
+        System.out.println("Logged out successfully.");
     }
 }

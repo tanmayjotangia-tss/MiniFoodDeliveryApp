@@ -1,16 +1,16 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.models.repository.FileUserRepository;
-import com.fooddeliveryapp.models.repository.UserRepository;
+import com.fooddeliveryapp.models.repository.*;
 import com.fooddeliveryapp.models.users.Admin;
+import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;
 import com.fooddeliveryapp.models.order.Order;
-import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.services.*;
 import com.fooddeliveryapp.services.DeliveryAssignment.DeliveryAssignmentStrategy;
+import com.fooddeliveryapp.services.DeliveryAssignment.FirstAvailableDeliveryAssignment;
 import com.fooddeliveryapp.services.DeliveryAssignment.RandomDeliveryAssignment;
 import com.fooddeliveryapp.services.discount.AmountDiscount;
 import com.fooddeliveryapp.utils.InputUtil;
@@ -27,6 +27,11 @@ public class ApplicationController {
 
     private final UserRepository userRepository;
     private final AuthService authService;
+    private final CartRepository cartRepository;
+
+    private Admin loggedInAdmin;
+    private Customer loggedInCustomer;
+    private DeliveryPartner loggedInPartner;
 
     public ApplicationController() {
 
@@ -36,7 +41,8 @@ public class ApplicationController {
         Repository<DeliveryPartner> partnerRepository = new FileRepository<>("partners.dat");
 
         this.userRepository = new FileUserRepository("users.dat");
-        this.authService = new AuthService((Repository<User>) userRepository);
+        this.authService = new AuthService( userRepository);
+        this.cartRepository = new FileCartRepository("carts.dat");
 
         // ---------------- Load Menu ----------------
         List<Menu> menus = menuRepository.findAll();
@@ -52,12 +58,10 @@ public class ApplicationController {
                 new DiscountService(new AmountDiscount(500, 10));
 
         DeliveryAssignmentStrategy deliveryStrategy =
-                new RandomDeliveryAssignment();
+                new FirstAvailableDeliveryAssignment();
 
         // ---------------- Services ----------------
         MenuService menuService = new MenuService(menuRepository);
-        DeliveryPartnerService deliveryService =
-                new DeliveryPartnerService(partnerRepository);
 
         OrderService orderService =
                 new OrderService(
@@ -67,6 +71,11 @@ public class ApplicationController {
                         deliveryStrategy
                 );
 
+        DeliveryPartnerService deliveryService =
+                new DeliveryPartnerService(
+                        partnerRepository,
+                        orderService
+                );
         // ---------------- Controllers ----------------
         this.adminController =
                 new AdminController(
@@ -74,14 +83,24 @@ public class ApplicationController {
                         deliveryService,
                         discountService,
                         orderService,
-                        this.menu
+                        this.menu,
+                        authService
                 );
 
         this.customerController =
-                new CustomerController(orderService, this.menu);
+                new CustomerController(
+                        orderService,
+                        this.menu,
+                        authService,
+                        cartRepository
+                );
 
         this.deliveryPartnerController =
-                new DeliveryPartnerController(orderService, deliveryService);
+                new DeliveryPartnerController(
+                        orderService,
+                        deliveryService,
+                        authService
+                );
 
         initializeAdminIfNotExists();
     }
@@ -117,23 +136,21 @@ public class ApplicationController {
         while (true) {
 
             System.out.println("\n=== RESTAURANT SYSTEM ===");
-            System.out.println("1. Login");
-            System.out.println("2. Register");
-            System.out.println("3. Exit");
+            System.out.println("1. Admin Panel");
+            System.out.println("2. Customer Panel");
+            System.out.println("3. Delivery Partner Panel");
+            System.out.println("4. Exit");
 
             int choice = InputUtil.readInt("Enter choice: ");
 
             switch (choice) {
-
-                case 1 -> handleLogin();
-
-                case 2 -> handleRegistration();
-
-                case 3 -> {
+                case 1 -> adminController.start();
+                case 2 -> customerController.start();
+                case 3 -> deliveryPartnerController.start();
+                case 4 -> {
                     System.out.println("Exiting application...");
                     return;
                 }
-
                 default -> System.out.println("Invalid choice.");
             }
         }
@@ -141,33 +158,20 @@ public class ApplicationController {
 
     private void handleLogin() {
 
-        String email = InputUtil.readEmail("Enter Email: ");
+        String email = InputUtil.readString("Enter Email: ");
         String password = InputUtil.readString("Enter Password: ");
 
         User user = authService.login(email, password);
 
-        if (user == null) {
-            System.out.println("Invalid credentials.");
-            return;
-        }
-
-        System.out.println("Login successful!");
-
-        switch (user.getRole()) {
-
-            case "ADMIN" -> adminController.start();
-
-            case "CUSTOMER" -> {
-                if (isMenuEmpty()) {
-                    System.out.println("Menu is empty. Contact admin.");
-                } else {
-                    customerController.start();
-                }
-            }
-
-            case "DELIVERY" -> deliveryPartnerController.start();
-
-            default -> System.out.println("Invalid role.");
+        if (user instanceof Admin admin) {
+            loggedInAdmin = admin;
+            System.out.println("Admin logged in.");
+        } else if (user instanceof Customer customer) {
+            loggedInCustomer = customer;
+            System.out.println("Customer logged in.");
+        } else if (user instanceof DeliveryPartner partner) {
+            loggedInPartner = partner;
+            System.out.println("Delivery Partner logged in.");
         }
     }
 

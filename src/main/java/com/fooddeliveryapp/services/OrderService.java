@@ -42,7 +42,10 @@ public class OrderService {
             throw new IllegalStateException("Cart is empty");
         }
 
-        Order order = new Order(cart.getCustomer().getId());
+        Order order = new Order(
+                cart.getCustomer().getId(),
+                cart.getCustomer().getName()
+        );
 
         // Convert cart items to order items
         for (CartItem cartItem : cart.getItems()) {
@@ -52,9 +55,8 @@ public class OrderService {
         }
 
         // Apply discount
-        double discount = discountService
-                .getCurrentStrategy()
-                .calculate(order.getTotalAmount());
+        double discount =
+                discountService.calculateDiscount(order.getTotalAmount());
 
         order.applyDiscount(discount);
 
@@ -78,6 +80,16 @@ public class OrderService {
         Order order = findOrder(orderId);
 
         order.confirmByAdmin();
+
+        List<DeliveryPartner> partners =
+                partnerRepository.findAll();
+
+        DeliveryPartner selected =
+                deliveryStrategy.assign(order, partners);
+
+        order.assignDeliveryPartner(selected.getId());
+
+        selected.setAvailable(false);
 
         orderRepository.save(order);
     }

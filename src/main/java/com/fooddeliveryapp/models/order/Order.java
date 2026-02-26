@@ -15,20 +15,24 @@ public class Order implements Serializable {
     private User customer;
     private PaymentMode paymentMode;
     private String deliveryPartnerId;
-
+    private String customerName;
     private final List<OrderItem> items;
     private final LocalDateTime createdAt;
-
     private OrderStatus status;
     private double discount;
 
-    public Order(String customerId) {
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public Order(String customerId, String customerName) {
 
         if (customerId == null || customerId.isBlank())
             throw new IllegalArgumentException("Customer required");
 
         this.id = UUID.randomUUID().toString();
         this.customerId = customerId;
+        this.customerName = customerName;
         this.items = new ArrayList<>();
         this.createdAt = LocalDateTime.now();
         this.status = OrderStatus.CREATED;
@@ -53,7 +57,8 @@ public class Order implements Serializable {
         if (status != OrderStatus.CREATED)
             throw new IllegalStateException("Order already processed");
 
-        status = OrderStatus.PAID;
+        this.status = OrderStatus.PAID;
+        this.paymentMode = mode;
     }
 
     public void assignDeliveryPartner(String partnerId) {
@@ -155,6 +160,24 @@ public class Order implements Serializable {
         }
 
         this.discount = discount;
+    }
+
+    public void acceptOrder(String orderId, String partnerId) {
+
+        if (status != OrderStatus.ASSIGNED) {
+            throw new IllegalStateException("Order not in ASSIGNED state.");
+        }
+
+        this.status = OrderStatus.OUT_FOR_DELIVERY;
+    }
+
+    public void deliverOrder(String orderId, String partnerId) {
+
+        if (status != OrderStatus.OUT_FOR_DELIVERY) {
+            throw new IllegalStateException("Order not out for delivery.");
+        }
+
+        this.status = OrderStatus.DELIVERED;
     }
 
     public double getFinalAmount() {
