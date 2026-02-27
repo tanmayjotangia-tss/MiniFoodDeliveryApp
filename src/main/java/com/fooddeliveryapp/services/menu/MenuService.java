@@ -26,9 +26,9 @@ public class MenuService {
         menuRepository.save(menu);
     }
 
-    public void updateItem(Menu menu, String itemId, String newName, double newPrice) {
+    public void updateItem(Menu menu, String itemId, double newPrice) {
 
-        menu.updateItem(itemId, newName, newPrice);
+        menu.updateItem(itemId, newPrice);
         menuRepository.save(menu);
     }
 
@@ -37,13 +37,16 @@ public class MenuService {
         menuRepository.save(menu);
     }
 
-    public void removeCategory(Menu menu, String categoryName) {
-        menu.removeCategory(categoryName);
+    public void removeCategory(Menu menu, MenuCategory category) {
+        menu.removeCategory(category);
         menuRepository.save(menu);
     }
 
 
     public List<MenuComponent> getFullMenu(Menu menu) {
         return menu.getRootCategory().getComponents();
+    }
+
+    public List<MenuCategory> getAllCategories() {
     }
 }

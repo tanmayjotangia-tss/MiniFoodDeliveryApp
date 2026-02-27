@@ -46,8 +46,9 @@ public class DeliveryPartnerController {
         System.out.println("1. View Assigned Orders");
         System.out.println("2. Mark Order Delivered");
         System.out.println("3. View Order History");
-        System.out.println("4. Logout");
-        System.out.println("5. Back to Main Menu");
+        System.out.println("4. View Earning");
+        System.out.println("5. Logout");
+        System.out.println("6. Back to Main Menu");
 
         int choice = InputUtil.readInt("Enter choice: ");
 
@@ -59,12 +60,14 @@ public class DeliveryPartnerController {
 
             case 3 -> viewDeliveryHistory();
 
-            case 4 -> {
+            case 4 -> viewEarning();
+
+            case 5 -> {
                 logout();
                 System.out.println("Logged out successfully.");
             }
 
-            case 5 -> {
+            case 6 -> {
                 return false;
             }
 
@@ -153,6 +156,18 @@ public class DeliveryPartnerController {
         }
     }
 
+    private void viewEarning() {
+        double totalEarnings =
+                partnerService.calculateEarnings(loggedInPartner.getId());
+
+        System.out.println("\n=== EARNINGS SUMMARY ===");
+        System.out.println("Basic Pay: ₹" + loggedInPartner.getBasicPay());
+        System.out.println("Incentive Percentage: "
+                + loggedInPartner.getIncentivePercentage() + "%");
+        System.out.println("----------------------------");
+        System.out.println("Total Earnings: ₹" + totalEarnings);
+    }
+
 //    Select Order - No manual UUID
     private Order selectOrder(List<Order> orders) {
 
@@ -177,8 +192,8 @@ public class DeliveryPartnerController {
 
     private void handleLogin() {
 
-        String email = InputUtil.readString("Enter Email: ");
-        String password = InputUtil.readString("Enter Password: ");
+        String email = InputUtil.readEmail("Enter Email: ");
+        String password = InputUtil.readPassword("Enter Password: ");
 
         User user = authService.login(email, password);
 
@@ -192,10 +207,10 @@ public class DeliveryPartnerController {
 
     private void handleRegister() {
 
-        String name = InputUtil.readString("Enter Name: ");
-        String email = InputUtil.readString("Enter Email: ");
-        String phone = InputUtil.readString("Enter Phone: ");
-        String password = InputUtil.readString("Enter Password: ");
+        String name = InputUtil.readValidName("Enter Name: ");
+        String email = InputUtil.readEmail("Enter Email: ");
+        String phone = InputUtil.readPhoneNumber("Enter Phone: ");
+        String password = InputUtil.readPassword("Enter Password: ");
 
         boolean success = authService.registerDeliveryPartner(name, email, phone, password);
 

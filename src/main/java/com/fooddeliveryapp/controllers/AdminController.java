@@ -19,6 +19,7 @@ import com.fooddeliveryapp.services.menu.MenuService;
 import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -125,27 +126,51 @@ public class AdminController {
         while (true) {
 
             System.out.println("\n--- MENU MANAGEMENT ---");
-            System.out.println("1. Add Category");
-            System.out.println("2. Add Item");
-            System.out.println("3. Update Item");
-            System.out.println("4. Remove Item");
-            System.out.println("5. Remove Category");
-            System.out.println("6. Back");
+            System.out.println("1. View Current Menu");
+            System.out.println("2. Add Category");
+            System.out.println("3. Add Item");
+            System.out.println("4. Update Item");
+            System.out.println("5. Remove Item");
+            System.out.println("6. Remove Category");
+            System.out.println("7. Back");
 
             int choice = InputUtil.readInt("Enter choice: ");
 
             switch (choice) {
-                case 1 -> addCategory();
-                case 2 -> addItem();
-                case 3 -> updateItem();
-                case 4 -> removeItem();
-                case 5 -> removeCategory();
-                case 6 -> {
+                case 1 -> displayMenuItemsWithIndex();
+                case 2 -> addCategory();
+                case 3 -> addItem();
+                case 4 -> updateItem();
+                case 5 -> removeItem();
+                case 6 -> removeCategory();
+                case 7 -> {
                     return;
                 }
                 default -> System.out.println("Invalid option.");
             }
         }
+    }
+
+    private List<MenuItem> displayMenuItemsWithIndex() {
+
+        List<MenuItem> items = getAllMenuItems();
+
+        if (items.isEmpty()) {
+            System.out.println("No menu items available.");
+            return List.of();
+        }
+
+        System.out.println("\n--- MENU ITEMS ---");
+
+        for (int i = 0; i < items.size(); i++) {
+            MenuItem item = items.get(i);
+            System.out.printf("%d. %-25s ₹%8.2f%n",
+                    i + 1,
+                    item.getName(),
+                    item.getPrice());
+        }
+
+        return items;
     }
 
     private void addCategory() {
@@ -165,12 +190,9 @@ public class AdminController {
 
         displayMenuStructure();
 
-        String categoryName = InputUtil.readString("Enter category name to add item: ");
+        MenuCategory selectedCategory = selectCategory();
 
-        MenuCategory category = findCategoryByName(categoryName);
-
-        if (category == null) {
-            System.out.println("Category not found.");
+        if (selectedCategory == null) {
             return;
         }
 
@@ -189,16 +211,26 @@ public class AdminController {
 
     private void updateItem() {
 
-        displayMenuItems();
+        List<MenuItem> items = displayMenuItemsWithIndex();
+        if (items.isEmpty()) return;
 
-        String itemId = InputUtil.readString("Enter Item ID to update: ");
+        int choice = InputUtil.readInt("Select item to update (0 to cancel): ");
 
-        String newName = InputUtil.readString("Enter new name: ");
+        if (choice == 0) return;
+
+        if (choice < 1 || choice > items.size()) {
+            System.out.println("Invalid selection.");
+            return;
+        }
+
+        MenuItem selected = items.get(choice - 1);
 
         double newPrice = InputUtil.readDouble("Enter new price: ");
 
         try {
-            menuService.updateItem(menu, itemId, newName, newPrice);
+            menuService.updateItem(menu,
+                    selected.getId(),
+                    newPrice);
             System.out.println("Item updated successfully.");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -207,12 +239,22 @@ public class AdminController {
 
     private void removeItem() {
 
-        displayMenuItems();
+        List<MenuItem> items = displayMenuItemsWithIndex();
+        if (items.isEmpty()) return;
 
-        String itemId = InputUtil.readString("Enter Item ID to remove: ");
+        int choice = InputUtil.readInt("Select item to remove (0 to cancel): ");
+
+        if (choice == 0) return;
+
+        if (choice < 1 || choice > items.size()) {
+            System.out.println("Invalid selection.");
+            return;
+        }
+
+        MenuItem selected = items.get(choice - 1);
 
         try {
-            menuService.removeItem(menu, itemId);
+            menuService.removeItem(menu, selected.getId());
             System.out.println("Item removed successfully.");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -223,7 +265,11 @@ public class AdminController {
 
         displayMenuStructure();
 
-        String categoryName = InputUtil.readString("Enter category name to remove: ");
+        MenuCategory selectedCategory = selectCategory();
+
+        if (selectedCategory == null) {
+            return;
+        }
 
         try {
             menuService.removeCategory(menu, categoryName);
@@ -233,6 +279,31 @@ public class AdminController {
         }
     }
 
+    private MenuCategory selectCategory() {
+
+        List<MenuCategory> categories = menuService.getAllCategories();
+
+        if (categories.isEmpty()) {
+            System.out.println("No categories available.");
+            return null;
+        }
+
+        System.out.println("--- SELECT CATEGORY ---");
+
+        for (int i = 0; i < categories.size(); i++) {
+            System.out.println((i + 1) + ". " + categories.get(i).getName());
+        }
+
+        int choice = InputUtil.readInt("Select category (0 to cancel): ");
+
+        if (choice <= 0 || choice > categories.size()) {
+            System.out.println("Cancelled.");
+            return null;
+        }
+
+        return categories.get(choice - 1);
+    }
+
 
     //    Delivery Management
     private void manageDeliveryPartners() {
@@ -240,20 +311,34 @@ public class AdminController {
             System.out.println("\n--- DELIVERY MANAGEMENT ---");
             System.out.println("1. Remove Partner");
             System.out.println("2. Update Basic Pay");
-            System.out.println("3. View All Partners");
-            System.out.println("4. Back");
+            System.out.println("3. Update Incentive Percentage");
+            System.out.println("4. View All Partners");
+            System.out.println("5. Back");
 
             int choice = InputUtil.readInt("Enter choice: ");
 
             switch (choice) {
                 case 1 -> removePartner();
                 case 2 -> updatePartnerPay();
-                case 3 -> viewPartners();
-                case 4 -> {
+                case 3 -> updateIncentivePercentage();
+                case 4 -> viewPartners();
+                case 5 -> {
                     return;
                 }
                 default -> System.out.println("Invalid option.");
             }
+        }
+    }
+
+    private void updateIncentivePercentage() {
+        viewPartners();
+        String id = InputUtil.readString("Enter partner ID: ");
+        double percentage = InputUtil.readDouble("Enter new incentive percentage: ");
+        try {
+            deliveryService.updateIncentivePercentage(id, percentage);
+            System.out.println("Incentive Percentage updated.");
+        } catch (EntityNotFoundException e) {
+            System.out.println("Partner not found.");
         }
     }
 
@@ -513,5 +598,33 @@ public class AdminController {
     private void logout() {
         loggedInAdmin = null;
         System.out.println("Admin logged out.");
+    }
+
+    private void printLine(char ch) {
+        for (int i = 0; i < 60; i++) {
+            System.out.print(ch);
+        }
+        System.out.println();
+    }
+
+    private void centerText(String text, int width) {
+        int padding = (width - text.length()) / 2;
+        if (padding < 0) padding = 0;
+        System.out.printf("%" + (padding + text.length()) + "s%n", text);
+    }
+
+    private List<MenuItem> getAllMenuItems() {
+        List<MenuItem> items = new ArrayList<>();
+
+        for (MenuComponent component : menu.getRootCategory().getComponents()) {
+            if (component instanceof MenuCategory category) {
+                for (MenuComponent child : category.getComponents()) {
+                    if (child instanceof MenuItem item) {
+                        items.add(item);
+                    }
+                }
+            }
+        }
+        return items;
     }
 }

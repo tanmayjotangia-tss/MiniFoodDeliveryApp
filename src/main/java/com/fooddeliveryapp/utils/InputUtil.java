@@ -150,5 +150,28 @@ public class InputUtil {
             """);
         }
     }
+
+
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^[0-9]{10}$");
+
+    public static String readPhoneNumber(String message) {
+        while (true) {
+            System.out.print(message);
+            String phone = scanner.nextLine().trim();
+
+            if (PHONE_PATTERN.matcher(phone).matches()) {
+                return phone;
+            }
+
+            System.out.println("""
+        Invalid phone number.
+        Phone number must:
+        - Contain exactly 10 digits
+        - Contain only numbers (0-9)
+        - No spaces or special characters
+        Example: 9876543210
+        """);
+        }
+    }
 }
 

@@ -48,9 +48,7 @@ public class MenuCategory extends MenuComponent {
 
     @Override
     public void display(String indent) {
-
         System.out.println(indent + "Category: " + name);
-
         for (MenuComponent component : components) {
             component.display(indent + "   ");
         }

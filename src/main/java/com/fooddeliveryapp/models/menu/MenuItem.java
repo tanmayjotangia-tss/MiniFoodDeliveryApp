@@ -25,16 +25,18 @@ public class MenuItem extends MenuComponent {
         return price;
     }
 
+
     @Override
     public void display(String indent) {
-        System.out.println(indent + "- " + name + " | ₹" + price);
+        System.out.printf("%s- %-25s ₹%8.2f%n",
+                indent,
+                trim(name, 25),
+                price);
     }
 
-    public void updateName(String newName) {
-
-        if (newName == null || newName.isBlank()) throw new IllegalArgumentException("Invalid name");
-
-        this.name = newName.trim();
+    private String trim(String text, int maxLength) {
+        if (text.length() <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + "...";
     }
 
     public void updatePrice(double newPrice) {

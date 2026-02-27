@@ -77,19 +77,62 @@ public class Cart implements Serializable {
     }
 
     public void printCart() {
-
         if (items.isEmpty()) {
             System.out.println("Cart is empty.");
             return;
         }
 
-        System.out.println("\n--- YOUR CART ---");
+        final int WIDTH = 60;
 
-        for (int i = 0; i < items.size(); i++) {
-            CartItem ci = items.get(i);
-            System.out.println((i + 1) + ". " + ci.getItem().getName() + " x" + ci.getQuantity() + " = ₹" + ci.subtotal());
+        printLine('=');
+        centerText("YOUR CART", WIDTH);
+        printLine('=');
+
+        System.out.printf("%-4s %-20s %-6s %-10s %-10s%n",
+                "No", "Item", "Qty", "Price", "Subtotal");
+        printLine('-');
+
+        int index = 1;
+        double total = 0;
+
+        for (CartItem ci : items) {
+            String name = ci.getItem().getName();
+            int qty = ci.getQuantity();
+            double price = ci.getItem().getPrice();
+            double subtotal = ci.subtotal();
+
+            total += subtotal;
+
+            System.out.printf("%-4d %-20s %-6d %-10.2f %-10.2f%n",
+                    index++,
+                    trim(name, 20),
+                    qty,
+                    price,
+                    subtotal);
         }
 
-        System.out.println("Total: ₹" + calculateTotal());
+        printLine('-');
+
+        System.out.printf("%-42s ₹%10.2f%n", "Total Amount:", total);
+
+        printLine('=');
+    }
+
+    private void printLine(char ch) {
+        for (int i = 0; i < 60; i++) {
+            System.out.print(ch);
+        }
+        System.out.println();
+    }
+
+    private void centerText(String text, int width) {
+        int padding = (width - text.length()) / 2;
+        if (padding < 0) padding = 0;
+        System.out.printf("%" + (padding + text.length()) + "s%n", text);
+    }
+
+    private String trim(String text, int maxLength) {
+        if (text.length() <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + "...";
     }
 }

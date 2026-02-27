@@ -38,7 +38,7 @@ public class ApplicationController {
         Repository<DeliveryPartner> partnerRepository = new FileRepository<>("partners.dat");
 
         this.userRepository = new FileUserRepository("users.dat");
-        this.authService = new AuthService(userRepository);
+        this.authService = new AuthService(userRepository, partnerRepository);
         this.cartRepository = new FileCartRepository("carts.dat");
 
         // Load Menu

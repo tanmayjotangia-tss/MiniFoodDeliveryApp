@@ -69,7 +69,7 @@ public class Menu implements Serializable {
         throw new EntityNotFoundException("Menu item not found");
     }
 
-    public void updateItem(String itemId, String newName, double newPrice) {
+    public void updateItem(String itemId, double newPrice) {
 
         MenuItem item = findItemById(itemId);
 
@@ -77,17 +77,6 @@ public class Menu implements Serializable {
 
         if (parentCategory == null) throw new RuntimeException("Parent category not found");
 
-        boolean duplicateName = parentCategory.getComponents()
-                .stream()
-                .filter(c -> c instanceof MenuItem)
-                .map(c -> (MenuItem) c)
-                .anyMatch(i -> !i.getId()
-                        .equals(itemId) && i.getName()
-                        .equalsIgnoreCase(newName.trim()));
-
-        if (duplicateName) throw new RuntimeException("Item with same name already exists in this category");
-
-        item.updateName(newName);
         item.updatePrice(newPrice);
     }
 

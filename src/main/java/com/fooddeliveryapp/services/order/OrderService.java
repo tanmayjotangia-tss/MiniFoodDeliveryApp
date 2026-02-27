@@ -269,6 +269,9 @@ public class OrderService {
             String orderId) {
 
         Order order = findOrder(orderId);
+        if(order.getStatus() != OrderStatus.ASSIGNED){
+            throw new UnsupportedOperationException("Not able to cancle");
+        }
         order.cancel();
         orderRepository.save(order);
     }

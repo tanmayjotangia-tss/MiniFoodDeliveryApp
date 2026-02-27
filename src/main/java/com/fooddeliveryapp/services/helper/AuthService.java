@@ -12,9 +12,11 @@ import java.util.Set;
 public class AuthService {
 
     private final Repository<User> userRepository;
+    private final Repository<DeliveryPartner> partnerRepository;
 
-    public AuthService(Repository<User> userRepository) {
+    public AuthService(Repository<User> userRepository, Repository<DeliveryPartner> partnerRepository) {
         this.userRepository = userRepository;
+        this.partnerRepository = partnerRepository;
     }
 
     // =========================
@@ -53,7 +55,7 @@ public class AuthService {
             return false;
         }
 
-        User partner = new DeliveryPartner(
+        DeliveryPartner partner = new DeliveryPartner(
                 name,
                 email,
                 phone,
@@ -61,19 +63,34 @@ public class AuthService {
                 0
         );
 
-        userRepository.save(partner);
+        partnerRepository.save(partner);
+
         return true;
     }
 
     // =========================
     // LOGIN
     // =========================
+
     public User login(String email, String password) {
-        return userRepository.findAll()
+
+        // Check normal users
+        User user = userRepository.findAll()
                 .stream()
-                .filter(u ->
-                        u.getEmail().equalsIgnoreCase(email)
-                                && u.getPassword().equals(password))
+                .filter(u -> u.getEmail().equalsIgnoreCase(email)
+                        && u.getPassword().equals(password))
+                .findFirst()
+                .orElse(null);
+
+        if (user != null) {
+            return user;
+        }
+
+        // Check delivery partners
+        return partnerRepository.findAll()
+                .stream()
+                .filter(p -> p.getEmail().equalsIgnoreCase(email)
+                        && p.getPassword().equals(password))
                 .findFirst()
                 .orElse(null);
     }

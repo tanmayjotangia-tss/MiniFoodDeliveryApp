@@ -217,8 +217,8 @@ public class CustomerController {
 
     private void login() {
 
-        String email = InputUtil.readString("Enter Email: ");
-        String password = InputUtil.readString("Enter Password: ");
+        String email = InputUtil.readEmail("Enter Email: ");
+        String password = InputUtil.readPassword("Enter Password: ");
 
         User user = authService.login(email, password);
 
@@ -237,10 +237,10 @@ public class CustomerController {
 
     private void register() {
 
-        String name = InputUtil.readString("Enter Name: ");
-        String email = InputUtil.readString("Enter Email: ");
-        String phone = InputUtil.readString("Enter Phone: ");
-        String password = InputUtil.readString("Enter Password: ");
+        String name = InputUtil.readValidName("Enter Name: ");
+        String email = InputUtil.readEmail("Enter Email: ");
+        String phone = InputUtil.readPhoneNumber("Enter Phone: ");
+        String password = InputUtil.readPassword("Enter Password: ");
 
         System.out.println("Notify via:");
         System.out.println("1. Email");
