@@ -7,11 +7,7 @@ public class DeliveryPartner extends User {
     private double incentivePercentage;
 
 
-    public DeliveryPartner(String name,
-                           String email,
-                           String phone,
-                           String password,
-                           double basicPay) {
+    public DeliveryPartner(String name, String email, String phone, String password, double basicPay) {
 
         super(name, email, phone, password);
         this.available = true;
@@ -23,14 +19,17 @@ public class DeliveryPartner extends User {
         return basicPay;
     }
 
-    public boolean isAvailable() { return available; }
+    public boolean isAvailable() {
+        return available;
+    }
+
     public void setAvailable(boolean available) {
         this.available = available;
     }
 
     @Override
-    public String getRole() {
-        return "DELIVERY_PARTNER";
+    public Role getRole() {
+        return Role.DELIVERY_PARTNER;
     }
 
     public void updateBasicPay(double newPay) {
@@ -42,8 +41,7 @@ public class DeliveryPartner extends User {
     }
 
     public void updateIncentivePercentage(double percentage) {
-        if (percentage < 0)
-            throw new IllegalArgumentException("Invalid percentage");
+        if (percentage < 0) throw new IllegalArgumentException("Invalid percentage");
         this.incentivePercentage = percentage;
     }
 }

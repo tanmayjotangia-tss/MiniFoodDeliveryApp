@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.services;
+package com.fooddeliveryapp.services.helper;
 
 import com.fooddeliveryapp.models.repository.Repository;
 

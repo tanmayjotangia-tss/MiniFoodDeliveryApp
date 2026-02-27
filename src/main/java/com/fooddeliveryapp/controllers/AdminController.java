@@ -9,10 +9,14 @@ import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.users.Admin;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
-import com.fooddeliveryapp.services.*;
+import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
 import com.fooddeliveryapp.services.discount.AmountDiscount;
+import com.fooddeliveryapp.services.discount.DiscountService;
 import com.fooddeliveryapp.services.discount.FlatDiscount;
 import com.fooddeliveryapp.services.discount.PercentageDiscount;
+import com.fooddeliveryapp.services.helper.AuthService;
+import com.fooddeliveryapp.services.menu.MenuService;
+import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
 
 import java.util.List;
@@ -25,7 +29,6 @@ public class AdminController {
     private final DiscountService discountService;
     private final OrderService orderService;
     private final Menu menu;
-
     private Admin loggedInAdmin;
     private final AuthService authService;
 
@@ -41,41 +44,82 @@ public class AdminController {
 
     public void start() {
 
-        while (true) {
+        boolean running = true;
 
-            System.out.println("\n====== ADMIN PANEL ======");
-            System.out.println("1. Login");
-            System.out.println("2. Manage Menu");
-            System.out.println("3. Manage Delivery Partners");
-            System.out.println("4. Manage Discount");
-            System.out.println("5. Manage Orders");
-            System.out.println("6. Revenue Summary");
-            System.out.println("7. Logout");
-            System.out.println("8. Back");
+        while (running) {
 
-            int choice = InputUtil.readInt("Enter choice: ");
-
-            switch (choice) {
-
-                case 1 -> login();
-                case 2 -> requireLogin(this::manageMenu);
-                case 3 -> requireLogin(this::manageDeliveryPartners);
-                case 4 -> requireLogin(this::manageDiscount);
-                case 5 -> requireLogin(this::manageOrders);
-                case 6 -> requireLogin(this::showRevenueSummary);
-                case 7 -> logout();
-                case 8 -> { return; }
-
-                default -> System.out.println("Invalid option.");
+            if (loggedInAdmin == null) {
+                running = showPreLoginMenu();
+            } else {
+                running = showDashboardMenu();
             }
         }
     }
 
+    private boolean showPreLoginMenu() {
 
-    // =========================
-    // MENU MANAGEMENT
-    // =========================
+        System.out.println("\n====== ADMIN PANEL ======");
+        System.out.println("1. Login");
+        System.out.println("2. Back to Main Menu");
 
+        int choice = InputUtil.readInt("Enter choice: ");
+
+        switch (choice) {
+
+            case 1 -> login();
+
+            case 2 -> {
+                return false;
+            }
+
+            default -> System.out.println("Invalid option.");
+        }
+
+        return true;
+    }
+
+    private boolean showDashboardMenu() {
+
+        System.out.println("\n====== ADMIN DASHBOARD ======");
+        System.out.println("1. Manage Menu");
+        System.out.println("2. Manage Delivery Partners");
+        System.out.println("3. Manage Discount");
+        System.out.println("4. Manage Orders");
+        System.out.println("5. Orders History");
+        System.out.println("6. Revenue Summary");
+        System.out.println("7. Logout");
+        System.out.println("8. Back to Main Menu");
+
+        int choice = InputUtil.readInt("Enter choice: ");
+
+        switch (choice) {
+
+            case 1 -> manageMenu();
+
+            case 2 -> manageDeliveryPartners();
+
+            case 3 -> manageDiscount();
+
+            case 4 -> manageOrders();
+
+            case 5 -> viewOrderHistory();
+
+            case 6 -> showRevenueSummary();
+
+            case 7 -> logout();
+
+            case 8 -> {
+                return false;
+            }
+
+            default -> System.out.println("Invalid option.");
+        }
+
+        return true;
+    }
+
+
+    //    Menu Management
     private void manageMenu() {
 
         while (true) {
@@ -189,29 +233,23 @@ public class AdminController {
         }
     }
 
-    // =========================
-    // DELIVERY MANAGEMENT
-    // =========================
 
+    //    Delivery Management
     private void manageDeliveryPartners() {
-
         while (true) {
-
             System.out.println("\n--- DELIVERY MANAGEMENT ---");
-            System.out.println("1. Add Partner");
-            System.out.println("2. Remove Partner");
-            System.out.println("3. Update Basic Pay");
-            System.out.println("4. View All Partners");
-            System.out.println("5. Back");
+            System.out.println("1. Remove Partner");
+            System.out.println("2. Update Basic Pay");
+            System.out.println("3. View All Partners");
+            System.out.println("4. Back");
 
             int choice = InputUtil.readInt("Enter choice: ");
 
             switch (choice) {
-                case 1 -> addPartner();
-                case 2 -> removePartner();
-                case 3 -> updatePartnerPay();
-                case 4 -> viewPartners();
-                case 5 -> {
+                case 1 -> removePartner();
+                case 2 -> updatePartnerPay();
+                case 3 -> viewPartners();
+                case 4 -> {
                     return;
                 }
                 default -> System.out.println("Invalid option.");
@@ -219,41 +257,19 @@ public class AdminController {
         }
     }
 
-    private void addPartner() {
-
-        String name = InputUtil.readString("Enter name: ");
-        String phone = InputUtil.readString("Enter phone: ");
-        double pay = InputUtil.readDouble("Enter basic pay: ");
-        String email = InputUtil.readEmail("Enter email id: ");
-        String password = InputUtil.readString("Enter password: ");
-
-        try {
-            DeliveryPartner partner = new DeliveryPartner(name,email,phone,password,pay);
-
-            deliveryService.addPartner(partner);
-
-            System.out.println("Partner added successfully.");
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
     private void removePartner() {
         List<DeliveryPartner> partners = deliveryService.getAllPartners();
-
         DeliveryPartner selected = selectFromList(partners, p -> "Name: " + p.getName() + " | ID: " + p.getId());
 
         if (selected == null) return;
 
         deliveryService.removePartner(selected.getId());
+        System.out.println("Partner removed successfully.");
     }
 
     private void updatePartnerPay() {
-
         viewPartners();
-
         String id = InputUtil.readString("Enter partner ID: ");
-
         double pay = InputUtil.readDouble("Enter new basic pay: ");
 
         try {
@@ -265,20 +281,16 @@ public class AdminController {
     }
 
     private void viewPartners() {
-
         List<DeliveryPartner> partners = deliveryService.getAllPartners();
 
         System.out.println("\n--- DELIVERY PARTNERS ---");
-
         for (DeliveryPartner partner : partners) {
             System.out.println("ID: " + partner.getId() + " | Name: " + partner.getName() + " | Available: " + partner.isAvailable());
         }
     }
 
-    // =========================
-    // DISCOUNT MANAGEMENT
-    // =========================
 
+    //    Discount Management
     private void manageDiscount() {
 
         System.out.println("\n=== CONFIGURE DISCOUNT ===");
@@ -292,32 +304,22 @@ public class AdminController {
         switch (choice) {
 
             case 1 -> {
-                double percent =
-                        InputUtil.readDouble("Enter percentage: ");
-                discountService.setDiscountStrategy(
-                        new PercentageDiscount(percent)
-                );
+                double percent = InputUtil.readDouble("Enter percentage: ");
+                discountService.setDiscountStrategy(new PercentageDiscount(percent));
                 System.out.println("Percentage discount applied.");
             }
 
             case 2 -> {
-                double amount =
-                        InputUtil.readDouble("Enter flat amount: ");
-                discountService.setDiscountStrategy(
-                        new FlatDiscount(amount)
-                );
+                double amount = InputUtil.readDouble("Enter flat amount: ");
+                discountService.setDiscountStrategy(new FlatDiscount(amount));
                 System.out.println("Flat discount applied.");
             }
 
             case 3 -> {
-                double threshold =
-                        InputUtil.readDouble("Enter minimum amount: ");
-                double percent =
-                        InputUtil.readDouble("Enter percentage: ");
+                double threshold = InputUtil.readDouble("Enter minimum amount: ");
+                double percent = InputUtil.readDouble("Enter percentage: ");
 
-                discountService.setDiscountStrategy(
-                        new AmountDiscount(threshold, percent)
-                );
+                discountService.setDiscountStrategy(new AmountDiscount(threshold, percent));
 
                 System.out.println("Amount-based discount applied.");
             }
@@ -331,9 +333,6 @@ public class AdminController {
         }
     }
 
-    // =========================
-    // ORDER HISTORY
-    // =========================
 
     private void viewOrderHistory() {
 
@@ -358,10 +357,7 @@ public class AdminController {
         System.out.println("=============================");
     }
 
-    // =========================
-    // HELPER METHODS
-    // =========================
-
+    //    Helper Method
     private void displayMenuStructure() {
 
         System.out.println("\n--- CURRENT MENU ---");
@@ -512,16 +508,6 @@ public class AdminController {
         } else {
             System.out.println("Invalid admin credentials.");
         }
-    }
-
-    private void requireLogin(Runnable action) {
-
-        if (loggedInAdmin == null) {
-            System.out.println("Please login first.");
-            return;
-        }
-
-        action.run();
     }
 
     private void logout() {

@@ -1,6 +1,5 @@
-package com.fooddeliveryapp.services;
+package com.fooddeliveryapp.services.discount;
 
-import com.fooddeliveryapp.services.discount.DiscountStrategy;
 public class DiscountService {
 
     private DiscountStrategy currentStrategy;

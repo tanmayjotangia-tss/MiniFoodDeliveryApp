@@ -19,7 +19,11 @@ public class MenuCategory extends MenuComponent {
 
         if (component instanceof MenuCategory category) {
 
-            boolean exists = components.stream().filter(c -> c instanceof MenuCategory).map(c -> (MenuCategory) c).anyMatch(c -> c.getName().equalsIgnoreCase(category.getName()));
+            boolean exists = components.stream()
+                    .filter(c -> c instanceof MenuCategory)
+                    .map(c -> (MenuCategory) c)
+                    .anyMatch(c -> c.getName()
+                            .equalsIgnoreCase(category.getName()));
 
             if (exists) throw new DuplicateEntityException("Category already exists: " + category.getName());
         }
@@ -29,8 +33,7 @@ public class MenuCategory extends MenuComponent {
             boolean exists = components.stream()
                     .filter(c -> c instanceof MenuItem)
                     .map(c -> (MenuItem) c)
-                    .anyMatch(i -> i.getName()
-                            .equalsIgnoreCase(item.getName()));
+                    .anyMatch(i -> i.getName().equalsIgnoreCase(item.getName()));
 
             if (exists) throw new DuplicateEntityException("Item already exists: " + item.getName());
         }

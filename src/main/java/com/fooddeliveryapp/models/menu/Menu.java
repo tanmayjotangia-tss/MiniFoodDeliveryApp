@@ -77,7 +77,13 @@ public class Menu implements Serializable {
 
         if (parentCategory == null) throw new RuntimeException("Parent category not found");
 
-        boolean duplicateName = parentCategory.getComponents().stream().filter(c -> c instanceof MenuItem).map(c -> (MenuItem) c).anyMatch(i -> !i.getId().equals(itemId) && i.getName().equalsIgnoreCase(newName.trim()));
+        boolean duplicateName = parentCategory.getComponents()
+                .stream()
+                .filter(c -> c instanceof MenuItem)
+                .map(c -> (MenuItem) c)
+                .anyMatch(i -> !i.getId()
+                        .equals(itemId) && i.getName()
+                        .equalsIgnoreCase(newName.trim()));
 
         if (duplicateName) throw new RuntimeException("Item with same name already exists in this category");
 
@@ -91,7 +97,13 @@ public class Menu implements Serializable {
 
         if (parent == null) throw new RuntimeException("Item not found");
 
-        parent.getComponents().stream().filter(c -> c instanceof MenuItem).map(c -> (MenuItem) c).filter(i -> i.getId().equals(itemId)).findFirst().ifPresentOrElse(parent::remove, () -> {
+        parent.getComponents()
+                .stream()
+                .filter(c -> c instanceof MenuItem)
+                .map(c -> (MenuItem) c)
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .ifPresentOrElse(parent::remove, () -> {
             throw new RuntimeException("Item not found");
         });
     }
@@ -101,9 +113,9 @@ public class Menu implements Serializable {
         MenuComponent category = rootCategory.getComponents()
                 .stream()
                 .filter(c -> c instanceof MenuCategory)
-                .filter(c -> c.getName().equalsIgnoreCase(categoryName.trim()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .filter(c -> c.getName()
+                        .equalsIgnoreCase(categoryName.trim()))
+                .findFirst().orElseThrow(() -> new RuntimeException("Category not found"));
 
         rootCategory.remove(category);
     }

@@ -1,24 +1,24 @@
 package com.fooddeliveryapp.models.users;
 
-public class Customer extends User {
-    private String notificationPreference;
+import com.fooddeliveryapp.models.notification.NotificationType;
 
-    public Customer(String name,
-                    String email,
-                    String phone,
-                    String password,
-                    String preference) {
+import java.util.Set;
+
+public class Customer extends User {
+    private Set<NotificationType> notificationPreferences;
+
+    public Customer(String name, String email, String phone, String password, Set<NotificationType> notificationPreferences) {
 
         super(name, email, phone, password);
-        this.notificationPreference = preference;
+        this.notificationPreferences = notificationPreferences;
     }
 
     @Override
-    public String getRole() {
-        return "CUSTOMER";
+    public Role getRole() {
+        return Role.CUSTOMER;
     }
 
-    public String getNotificationPreference() {
-        return notificationPreference;
+    public Set<NotificationType> getNotificationPreferences() {
+        return notificationPreferences;
     }
 }

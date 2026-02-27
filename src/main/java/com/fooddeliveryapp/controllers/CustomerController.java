@@ -4,19 +4,22 @@ import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuItem;
+import com.fooddeliveryapp.models.notification.NotificationType;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.PaymentMode;
 import com.fooddeliveryapp.models.repository.CartRepository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.User;
-import com.fooddeliveryapp.services.AuthService;
-import com.fooddeliveryapp.services.OrderService;
+import com.fooddeliveryapp.services.helper.AuthService;
+import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.services.payment.PaymentStrategy;
 import com.fooddeliveryapp.services.payment.PaymentFactory;
-import com.fooddeliveryapp.services.InvoicePrinter;
+import com.fooddeliveryapp.services.helper.InvoicePrinter;
 import com.fooddeliveryapp.utils.InputUtil;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class CustomerController {
 
@@ -35,34 +38,75 @@ public class CustomerController {
     }
 
     public void start() {
+        boolean running = true;
+        while (running) {
 
-        while (true) {
-
-            System.out.println("\n====== CUSTOMER PANEL ======");
-            System.out.println("1. Login");
-            System.out.println("2. Register");
-            System.out.println("3. Add Item");
-            System.out.println("4. Remove Item");
-            System.out.println("5. View Cart");
-            System.out.println("6. Checkout");
-            System.out.println("7. Logout");
-            System.out.println("8. Back");
-
-            int choice = InputUtil.readInt("Enter choice: ");
-
-            switch (choice) {
-
-                case 1 -> login();
-                case 2 -> register();
-                case 3 -> requireLogin(this::addItem);
-                case 4 -> requireLogin(this::removeItem);
-                case 5 -> requireLogin(this::viewCart);
-                case 6 -> requireLogin(this::checkout);
-                case 7 -> logout();
-                case 8 -> { return; }
-                default -> System.out.println("Invalid option.");
+            if (loggedInCustomer == null) {
+                running = showPreLoginMenu();
+            } else {
+                running = showDashboardMenu();
             }
         }
+    }
+
+    private boolean showPreLoginMenu() {
+
+        System.out.println("\n====== CUSTOMER PANEL ======");
+        System.out.println("1. Login");
+        System.out.println("2. Register");
+        System.out.println("3. Back to Main Menu");
+
+        int choice = InputUtil.readInt("Enter choice: ");
+
+        switch (choice) {
+
+            case 1 -> login();
+
+            case 2 -> register();
+
+            case 3 -> {
+                return false;
+            }
+
+            default -> System.out.println("Invalid option.");
+        }
+
+        return true;
+    }
+
+    private boolean showDashboardMenu() {
+
+        System.out.println("\n====== CUSTOMER DASHBOARD ======");
+        System.out.println("1. Add Item");
+        System.out.println("2. Remove Item");
+        System.out.println("3. View Cart");
+        System.out.println("4. Checkout");
+        System.out.println("5. Logout");
+        System.out.println("6. Back to Main Menu");
+
+        int choice = InputUtil.readInt("Enter choice: ");
+
+        switch (choice) {
+
+            case 1 -> addItem();
+
+            case 2 -> removeItem();
+
+            case 3 -> viewCart();
+
+            case 4 -> checkout();
+
+            case 5 -> {
+                logout();
+            }
+
+            case 6 -> {
+                return false;
+            }
+
+            default -> System.out.println("Invalid option.");
+        }
+        return true;
     }
 
     private void addItemToCart(Cart cart) {
@@ -114,9 +158,7 @@ public class CustomerController {
 
         for (int i = 0; i < items.size(); i++) {
             CartItem ci = items.get(i);
-            System.out.println((i + 1) + ". "
-                    + ci.getItem().getName()
-                    + " x" + ci.getQuantity());
+            System.out.println((i + 1) + ". " + ci.getItem().getName() + " x" + ci.getQuantity());
         }
 
         int selection = InputUtil.readInt("Enter choice (0 to cancel): ");
@@ -139,10 +181,7 @@ public class CustomerController {
 
             case 1 -> {
                 int qty = InputUtil.readInt("Enter quantity to decrease: ");
-                cart.decreaseItemQuantity(
-                        selected.getItem().getId(),
-                        qty
-                );
+                cart.decreaseItemQuantity(selected.getItem().getId(), qty);
                 System.out.println("Quantity updated.");
             }
 
@@ -185,27 +224,15 @@ public class CustomerController {
 
         if (user instanceof Customer customer) {
             loggedInCustomer = customer;
-            cart = cartRepository
-                    .findByCustomerId(loggedInCustomer.getId())
-                    .orElseGet(() -> {
-                        Cart newCart = new Cart(loggedInCustomer);
-                        cartRepository.save(newCart);
-                        return newCart;
-                    });
+            cart = cartRepository.findByCustomerId(loggedInCustomer.getId()).orElseGet(() -> {
+                Cart newCart = new Cart(loggedInCustomer);
+                cartRepository.save(newCart);
+                return newCart;
+            });
             System.out.println("Customer logged in.");
         } else {
             System.out.println("Invalid credentials.");
         }
-    }
-
-    private void requireLogin(Runnable action) {
-
-        if (loggedInCustomer == null) {
-            System.out.println("Please login first.");
-            return;
-        }
-
-        action.run();
     }
 
     private void register() {
@@ -215,7 +242,35 @@ public class CustomerController {
         String phone = InputUtil.readString("Enter Phone: ");
         String password = InputUtil.readString("Enter Password: ");
 
-        authService.register(name, email, phone, password, "CUSTOMER");
+        System.out.println("Notify via:");
+        System.out.println("1. Email");
+        System.out.println("2. Phone");
+        System.out.println("3. Both");
+
+        int choice = InputUtil.readInt("Enter your choice: ");
+
+        Set<NotificationType> preferences = new HashSet<>();
+
+        switch (choice) {
+            case 1 -> preferences.add(NotificationType.EMAIL);
+            case 2 -> preferences.add(NotificationType.PHONE);
+            case 3 -> {
+                preferences.add(NotificationType.EMAIL);
+                preferences.add(NotificationType.PHONE);
+            }
+            default -> {
+                System.out.println("Invalid choice.");
+                return;
+            }
+        }
+
+        boolean success = authService.registerCustomer(name, email, phone, password, preferences);
+
+        if (success) {
+            System.out.println("Registration successful!");
+        } else {
+            System.out.println("Email already exists.");
+        }
     }
 
     private void logout() {

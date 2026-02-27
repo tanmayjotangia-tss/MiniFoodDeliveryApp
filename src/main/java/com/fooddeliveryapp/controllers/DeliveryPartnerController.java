@@ -4,9 +4,9 @@ import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
-import com.fooddeliveryapp.services.AuthService;
-import com.fooddeliveryapp.services.DeliveryPartnerService;
-import com.fooddeliveryapp.services.OrderService;
+import com.fooddeliveryapp.services.helper.AuthService;
+import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
+import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
 
 import java.util.List;
@@ -19,10 +19,7 @@ public class DeliveryPartnerController {
 
     private DeliveryPartner loggedInPartner;
 
-    public DeliveryPartnerController(
-            OrderService orderService,
-            DeliveryPartnerService partnerService,
-            AuthService authService) {
+    public DeliveryPartnerController(OrderService orderService, DeliveryPartnerService partnerService, AuthService authService) {
 
         this.orderService = orderService;
         this.partnerService = partnerService;
@@ -31,44 +28,81 @@ public class DeliveryPartnerController {
 
     public void start() {
 
-        while (true) {
+        boolean running = true;
 
-            System.out.println("\n====== DELIVERY PARTNER PANEL ======");
-            System.out.println("1. Login");
-            System.out.println("2. Register");
-            System.out.println("3. View Assigned Orders");
-            System.out.println("4. Mark Delivered");
-            System.out.println("5. View Order History");
-            System.out.println("6. Logout");
-            System.out.println("7. Back");
+        while (running) {
 
-            int choice = InputUtil.readInt("Enter choice: ");
-
-            switch (choice) {
-
-                case 1 -> login();
-                case 2 -> register();
-                case 3 -> requireLogin(this::viewOrders);
-                case 4 -> requireLogin(this::deliverOrder);
-                case 5 -> requireLogin(this::viewDeliveryHistory);
-                case 6 -> logout();
-                case 7 -> { return; }
-                default -> System.out.println("Invalid choice.");
+            if (loggedInPartner == null) {
+                running = showPreLoginMenu();
+            } else {
+                running = showDashboardMenu();
             }
         }
     }
 
-    // --------------------------------------------
-    // VIEW ACTIVE ORDERS (ASSIGNED + OUT_FOR_DELIVERY)
-    // --------------------------------------------
+    private boolean showDashboardMenu() {
+
+        System.out.println("\n=== DELIVERY DASHBOARD ===");
+        System.out.println("1. View Assigned Orders");
+        System.out.println("2. Mark Order Delivered");
+        System.out.println("3. View Order History");
+        System.out.println("4. Logout");
+        System.out.println("5. Back to Main Menu");
+
+        int choice = InputUtil.readInt("Enter choice: ");
+
+        switch (choice) {
+
+            case 1 -> viewOrders();
+
+            case 2 -> deliverOrder();
+
+            case 3 -> viewDeliveryHistory();
+
+            case 4 -> {
+                logout();
+                System.out.println("Logged out successfully.");
+            }
+
+            case 5 -> {
+                return false;
+            }
+
+            default -> System.out.println("Invalid choice.");
+        }
+
+        return true;
+    }
+
+    private boolean showPreLoginMenu() {
+
+        System.out.println("\n=== DELIVERY PARTNER PANEL ===");
+        System.out.println("1. Login");
+        System.out.println("2. Register");
+        System.out.println("3. Back to Main Menu");
+
+        int choice = InputUtil.readInt("Enter choice: ");
+
+        switch (choice) {
+
+            case 1 -> handleLogin();
+
+            case 2 -> handleRegister();
+
+            case 3 -> {
+                return false;
+            }
+
+            default -> System.out.println("Invalid choice.");
+        }
+        return true;
+    }
+
+
+//    Assigned Orders
     private void viewOrders() {
 
-        List<Order> orders = orderService
-                .getOrdersByPartner(loggedInPartner.getId())
-                .stream()
-                .filter(o -> o.getStatus() == OrderStatus.ASSIGNED
-                        || o.getStatus() == OrderStatus.OUT_FOR_DELIVERY)
-                .toList();
+        List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId()).stream().filter(o -> o.getStatus() == OrderStatus.ASSIGNED || o.getStatus() == OrderStatus.OUT_FOR_DELIVERY).toList();
 
         if (orders.isEmpty()) {
             System.out.println("No assigned orders.");
@@ -79,24 +113,14 @@ public class DeliveryPartnerController {
 
         for (int i = 0; i < orders.size(); i++) {
             Order o = orders.get(i);
-            System.out.println((i + 1) + ". ID: " + o.getId()
-                    + " | Customer: " + o.getCustomerName()
-                    + " | Status: " + o.getStatus()
-                    + " | Amount: ₹" + o.getTotalAmount());
+            System.out.println((i + 1) + ". ID: " + o.getId() + " | Customer: " + o.getCustomerName() + " | Status: " + o.getStatus() + " | Amount: ₹" + o.getTotalAmount());
         }
     }
 
-    // --------------------------------------------
-    // MARK DELIVERED
-    // --------------------------------------------
+//    Mark Delivered
     private void deliverOrder() {
 
-        List<Order> orders = orderService
-                .getOrdersByPartner(loggedInPartner.getId())
-                .stream()
-                .filter(o -> o.getStatus() == OrderStatus.ASSIGNED
-                        || o.getStatus() == OrderStatus.OUT_FOR_DELIVERY)
-                .toList();
+        List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId()).stream().filter(o -> o.getStatus() == OrderStatus.ASSIGNED || o.getStatus() == OrderStatus.OUT_FOR_DELIVERY).toList();
 
         if (orders.isEmpty()) {
             System.out.println("No orders ready.");
@@ -106,24 +130,15 @@ public class DeliveryPartnerController {
         Order selected = selectOrder(orders);
         if (selected == null) return;
 
-        orderService.deliverOrder(
-                selected.getId(),
-                loggedInPartner.getId()
-        );
+        orderService.deliverOrder(selected.getId(), loggedInPartner.getId());
 
         System.out.println("Order delivered successfully.");
     }
 
-    // --------------------------------------------
-    // DELIVERY HISTORY
-    // --------------------------------------------
+//    Delivered History
     private void viewDeliveryHistory() {
 
-        List<Order> delivered = orderService
-                .getOrdersByPartner(loggedInPartner.getId())
-                .stream()
-                .filter(o -> o.getStatus() == OrderStatus.DELIVERED)
-                .toList();
+        List<Order> delivered = orderService.getOrdersByPartner(loggedInPartner.getId()).stream().filter(o -> o.getStatus() == OrderStatus.DELIVERED).toList();
 
         if (delivered.isEmpty()) {
             System.out.println("No delivered orders yet.");
@@ -134,25 +149,18 @@ public class DeliveryPartnerController {
 
         for (int i = 0; i < delivered.size(); i++) {
             Order o = delivered.get(i);
-            System.out.println((i + 1) + ". ID: " + o.getId()
-                    + " | Customer: " + o.getCustomerName()
-                    + " | Amount: ₹" + o.getTotalAmount());
+            System.out.println((i + 1) + ". ID: " + o.getId() + " | Customer: " + o.getCustomerName() + " | Amount: ₹" + o.getTotalAmount());
         }
     }
 
-    // --------------------------------------------
-    // SELECT ORDER
-    // --------------------------------------------
+//    Select Order - No manual UUID
     private Order selectOrder(List<Order> orders) {
 
         System.out.println("\nSelect Order:");
 
         for (int i = 0; i < orders.size(); i++) {
             Order o = orders.get(i);
-            System.out.println((i + 1) + ". "
-                    + o.getCustomerName()
-                    + " | ₹" + o.getTotalAmount()
-                    + " | " + o.getStatus());
+            System.out.println((i + 1) + ". " + o.getCustomerName() + " | ₹" + o.getTotalAmount() + " | " + o.getStatus());
         }
 
         int choice = InputUtil.readInt("Enter choice (0 to cancel): ");
@@ -167,10 +175,7 @@ public class DeliveryPartnerController {
         return orders.get(choice - 1);
     }
 
-    // --------------------------------------------
-    // LOGIN
-    // --------------------------------------------
-    private void login() {
+    private void handleLogin() {
 
         String email = InputUtil.readString("Enter Email: ");
         String password = InputUtil.readString("Enter Password: ");
@@ -185,35 +190,22 @@ public class DeliveryPartnerController {
         }
     }
 
-    // --------------------------------------------
-    // REGISTER
-    // --------------------------------------------
-    private void register() {
+    private void handleRegister() {
 
         String name = InputUtil.readString("Enter Name: ");
         String email = InputUtil.readString("Enter Email: ");
         String phone = InputUtil.readString("Enter Phone: ");
         String password = InputUtil.readString("Enter Password: ");
 
-        authService.register(name, email, phone, password, "DELIVERY");
-    }
+        boolean success = authService.registerDeliveryPartner(name, email, phone, password);
 
-    // --------------------------------------------
-    // LOGIN CHECK
-    // --------------------------------------------
-    private void requireLogin(Runnable action) {
-
-        if (loggedInPartner == null) {
-            System.out.println("Please login first.");
-            return;
+        if (success) {
+            System.out.println("Registration successful!");
+        } else {
+            System.out.println("Email already exists.");
         }
-
-        action.run();
     }
 
-    // --------------------------------------------
-    // LOGOUT
-    // --------------------------------------------
     private void logout() {
 
         loggedInPartner = null;

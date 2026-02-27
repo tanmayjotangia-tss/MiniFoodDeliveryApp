@@ -1,6 +1,8 @@
 package com.fooddeliveryapp.models.notification;
 
-public class ConsoleNotification implements Observer {
+import java.io.Serializable;
+
+public class ConsoleNotification implements Observer, Serializable {
 
     @Override
     public void update(String message) {

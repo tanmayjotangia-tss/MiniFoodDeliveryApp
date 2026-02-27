@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.services;
+package com.fooddeliveryapp.services.menu;
 
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;

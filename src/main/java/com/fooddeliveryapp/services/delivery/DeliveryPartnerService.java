@@ -1,9 +1,10 @@
-package com.fooddeliveryapp.services;
+package com.fooddeliveryapp.services.delivery;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.order.OrderStatus;
 import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
+import com.fooddeliveryapp.services.order.OrderService;
 
 import java.util.List;
 
@@ -15,10 +16,6 @@ public class DeliveryPartnerService {
     public DeliveryPartnerService(Repository<DeliveryPartner> repository, OrderService orderService) {
         this.repository = repository;
         this.orderService = orderService;
-    }
-
-    public void addPartner(DeliveryPartner partner) {
-        repository.save(partner);
     }
 
     public void removePartner(String id) {

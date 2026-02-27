@@ -1,9 +1,7 @@
-package com.fooddeliveryapp.services;
+package com.fooddeliveryapp.services.helper;
 
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderItem;
-import com.fooddeliveryapp.models.users.DeliveryPartner;
-import com.fooddeliveryapp.models.users.User;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -50,11 +48,12 @@ public class InvoicePrinter {
 
         printLine('-');
 
-        double discount = total - order.getTotalAmount();
+        double finalAmount = order.getFinalAmount();
+        double discount = total - finalAmount;
 
         System.out.printf("%-40s ₹%10.2f%n", "Total Amount:", total);
         System.out.printf("%-40s ₹%10.2f%n", "Discount:", discount);
-        System.out.printf("%-40s ₹%10.2f%n", "Final Amount:", order.getTotalAmount());
+        System.out.printf("%-40s ₹%10.2f%n", "Final Amount:", finalAmount);
 
         printLine('-');
 

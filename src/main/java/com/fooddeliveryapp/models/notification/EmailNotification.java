@@ -1,6 +1,8 @@
 package com.fooddeliveryapp.models.notification;
 
-public class EmailNotification implements Observer {
+import java.io.Serializable;
+
+public class EmailNotification implements Observer, Serializable {
 
     private final String email;
 

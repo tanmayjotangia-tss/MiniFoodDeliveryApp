@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.services.DeliveryAssignment;
+package com.fooddeliveryapp.services.delivery;
 
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.users.DeliveryPartner;

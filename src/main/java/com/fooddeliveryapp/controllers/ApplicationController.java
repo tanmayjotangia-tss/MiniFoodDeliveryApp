@@ -1,21 +1,22 @@
 package com.fooddeliveryapp.controllers;
 
 import com.fooddeliveryapp.models.repository.*;
-import com.fooddeliveryapp.models.users.Admin;
-import com.fooddeliveryapp.models.users.Customer;
-import com.fooddeliveryapp.models.users.User;
-import com.fooddeliveryapp.models.users.DeliveryPartner;
+import com.fooddeliveryapp.models.users.*;
 import com.fooddeliveryapp.models.menu.Menu;
-import com.fooddeliveryapp.models.menu.MenuCategory;
 import com.fooddeliveryapp.models.order.Order;
-import com.fooddeliveryapp.services.*;
-import com.fooddeliveryapp.services.DeliveryAssignment.DeliveryAssignmentStrategy;
-import com.fooddeliveryapp.services.DeliveryAssignment.FirstAvailableDeliveryAssignment;
-import com.fooddeliveryapp.services.DeliveryAssignment.RandomDeliveryAssignment;
+import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
+import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
+import com.fooddeliveryapp.services.delivery.FirstAvailableDeliveryAssignment;
 import com.fooddeliveryapp.services.discount.AmountDiscount;
+import com.fooddeliveryapp.services.discount.DiscountService;
+import com.fooddeliveryapp.services.helper.AuthService;
+import com.fooddeliveryapp.services.helper.FileRepository;
+import com.fooddeliveryapp.services.menu.MenuService;
+import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
 
 import java.util.List;
+
 
 public class ApplicationController {
 
@@ -29,22 +30,18 @@ public class ApplicationController {
     private final AuthService authService;
     private final CartRepository cartRepository;
 
-    private Admin loggedInAdmin;
-    private Customer loggedInCustomer;
-    private DeliveryPartner loggedInPartner;
-
     public ApplicationController() {
 
-        // ---------------- Serialization Repositories ----------------
+        // Serialize Repositories
         Repository<Menu> menuRepository = new FileRepository<>("menu.dat");
         Repository<Order> orderRepository = new FileRepository<>("orders.dat");
         Repository<DeliveryPartner> partnerRepository = new FileRepository<>("partners.dat");
 
         this.userRepository = new FileUserRepository("users.dat");
-        this.authService = new AuthService( userRepository);
+        this.authService = new AuthService(userRepository);
         this.cartRepository = new FileCartRepository("carts.dat");
 
-        // ---------------- Load Menu ----------------
+        // Load Menu
         List<Menu> menus = menuRepository.findAll();
         if (menus.isEmpty()) {
             this.menu = new Menu("My Restaurant");
@@ -53,82 +50,36 @@ public class ApplicationController {
             this.menu = menus.get(0);
         }
 
-        // ---------------- Default Discount ----------------
-        DiscountService discountService =
-                new DiscountService(new AmountDiscount(500, 10));
+        // Default Discount
+        DiscountService discountService = new DiscountService(new AmountDiscount(500, 10));
 
-        DeliveryAssignmentStrategy deliveryStrategy =
-                new FirstAvailableDeliveryAssignment();
+        DeliveryAssignmentStrategy deliveryStrategy = new FirstAvailableDeliveryAssignment();
 
-        // ---------------- Services ----------------
+        //Services
         MenuService menuService = new MenuService(menuRepository);
 
-        OrderService orderService =
-                new OrderService(
-                        orderRepository,
-                        discountService,
-                        partnerRepository,
-                        deliveryStrategy
-                );
+        OrderService orderService = new OrderService(orderRepository, discountService, partnerRepository, deliveryStrategy);
 
-        DeliveryPartnerService deliveryService =
-                new DeliveryPartnerService(
-                        partnerRepository,
-                        orderService
-                );
-        // ---------------- Controllers ----------------
-        this.adminController =
-                new AdminController(
-                        menuService,
-                        deliveryService,
-                        discountService,
-                        orderService,
-                        this.menu,
-                        authService
-                );
+        DeliveryPartnerService deliveryService = new DeliveryPartnerService(partnerRepository, orderService);
+        // Controllers
+        this.adminController = new AdminController(menuService, deliveryService, discountService, orderService, this.menu, authService);
 
-        this.customerController =
-                new CustomerController(
-                        orderService,
-                        this.menu,
-                        authService,
-                        cartRepository
-                );
+        this.customerController = new CustomerController(orderService, this.menu, authService, cartRepository);
 
-        this.deliveryPartnerController =
-                new DeliveryPartnerController(
-                        orderService,
-                        deliveryService,
-                        authService
-                );
+        this.deliveryPartnerController = new DeliveryPartnerController(orderService, deliveryService, authService);
 
         initializeAdminIfNotExists();
     }
 
     // Ensure only one admin exists
     private void initializeAdminIfNotExists() {
-        if (userRepository.findAll()
-                .stream()
-                .noneMatch(u -> "ADMIN".equals(u.getRole()))) {
+        if (userRepository.findAll().stream().noneMatch(u -> u.getRole() == Role.ADMIN)) {
 
-            User admin = new Admin(
-                    "System Admin",
-                    "admin@restaurant.com",
-                    "9999999999",
-                    "admin123"
-            );
-
+            User admin = new Admin("System Admin", "admin@restaurant.com", "9999999999", "admin123");
 
             userRepository.save(admin);
             System.out.println("Default Admin created (email: admin@restaurant.com, password: admin123)");
         }
-    }
-
-    private boolean isMenuEmpty() {
-        return menu.getRootCategory().getComponents().stream()
-                .filter(c -> c instanceof MenuCategory)
-                .map(c -> (MenuCategory) c)
-                .allMatch(category -> category.getComponents().isEmpty());
     }
 
     public void start() {
@@ -153,64 +104,6 @@ public class ApplicationController {
                 }
                 default -> System.out.println("Invalid choice.");
             }
-        }
-    }
-
-    private void handleLogin() {
-
-        String email = InputUtil.readString("Enter Email: ");
-        String password = InputUtil.readString("Enter Password: ");
-
-        User user = authService.login(email, password);
-
-        if (user instanceof Admin admin) {
-            loggedInAdmin = admin;
-            System.out.println("Admin logged in.");
-        } else if (user instanceof Customer customer) {
-            loggedInCustomer = customer;
-            System.out.println("Customer logged in.");
-        } else if (user instanceof DeliveryPartner partner) {
-            loggedInPartner = partner;
-            System.out.println("Delivery Partner logged in.");
-        }
-    }
-
-    private void handleRegistration() {
-
-        String name = InputUtil.readValidName("Enter Name: ");
-        String email = InputUtil.readEmail("Enter Email: ");
-        String phone = InputUtil.readString("Enter Phone: ");
-        String password = InputUtil.readString("Enter Password: ");
-
-        System.out.println("Select Role:");
-        System.out.println("1. Customer");
-        System.out.println("2. Delivery Partner");
-
-        int roleChoice = InputUtil.readInt("Enter choice: ");
-
-        String role;
-
-        if (roleChoice == 1) {
-            role = "CUSTOMER";
-        } else if (roleChoice == 2) {
-            role = "DELIVERY";
-        } else {
-            System.out.println("Invalid role.");
-            return;
-        }
-
-        boolean success = authService.register(
-                name,
-                email,
-                phone,
-                password,
-                role
-        );
-
-        if (success) {
-            System.out.println("Registration successful!");
-        } else {
-            System.out.println("Email already exists.");
         }
     }
 }

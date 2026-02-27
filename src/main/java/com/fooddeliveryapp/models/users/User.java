@@ -13,19 +13,13 @@ public abstract class User implements Serializable {
     protected String phone;
     protected String password;
 
-    protected User(String name,
-                   String email,
-                   String phone,
-                   String password) {
+    protected User(String name, String email, String phone, String password) {
 
-        if (name == null || name.isBlank())
-            throw new IllegalArgumentException("Name required");
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name required");
 
-        if (email == null || email.isBlank())
-            throw new IllegalArgumentException("Email required");
+        if (email == null || email.isBlank()) throw new IllegalArgumentException("Email required");
 
-        if (password == null || password.isBlank())
-            throw new IllegalArgumentException("Password required");
+        if (password == null || password.isBlank()) throw new IllegalArgumentException("Password required");
 
         this.id = UUID.randomUUID().toString();
         this.name = name;
@@ -34,11 +28,25 @@ public abstract class User implements Serializable {
         this.password = password;
     }
 
-    public String getId() { return id; }
-    public String getEmail() { return email; }
-    public String getPassword() { return password; }
-    public String getName() { return name; }
-    public String getPhone() { return phone; }
+    public String getId() {
+        return id;
+    }
 
-    public abstract String getRole();
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public abstract Role getRole();
 }
