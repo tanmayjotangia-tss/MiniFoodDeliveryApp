@@ -138,7 +138,15 @@ public class CustomerController {
 
         MenuItem selectedItem = items.get(selection - 1);
 
-        int quantity = InputUtil.readInt("Enter quantity: ");
+        int quantity;
+        while (true) {
+            quantity = InputUtil.readInt("Enter quantity: ");
+            if (quantity > 0) break;
+            System.out.println("Quantity must be greater than 0.");
+        }
+
+        cart.addItem(selectedItem, quantity);
+        System.out.println("Item added successfully.");
 
         cart.addItem(selectedItem, quantity);
 
@@ -202,9 +210,15 @@ public class CustomerController {
             return;
         }
 
-        String modeInput = InputUtil.readString("Payment mode (cash/upi): ");
-
-        PaymentMode mode = PaymentMode.valueOf(modeInput.toUpperCase());
+        PaymentMode mode = null;
+        while (mode == null) {
+            String input = InputUtil.readString("Payment mode (cash/upi): ");
+            try {
+                mode = PaymentMode.valueOf(input.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid payment mode. Please enter 'cash' or 'upi'.");
+            }
+        }
 
         PaymentStrategy strategy = PaymentFactory.getStrategy(String.valueOf(mode));
 

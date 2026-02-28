@@ -37,7 +37,7 @@ public class MenuService {
         menuRepository.save(menu);
     }
 
-    public void removeCategory(Menu menu, MenuCategory category) {
+    public void removeCategory(Menu menu, String category) {
         menu.removeCategory(category);
         menuRepository.save(menu);
     }
@@ -48,5 +48,18 @@ public class MenuService {
     }
 
     public List<MenuCategory> getAllCategories() {
+
+        Menu menu = menuRepository.findAll()
+                .stream()
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalStateException("Menu not found"));
+
+        return menu.getRootCategory()
+                .getComponents()
+                .stream()
+                .filter(component -> component instanceof MenuCategory)
+                .map(component -> (MenuCategory) component)
+                .toList();
     }
 }

@@ -1,14 +1,15 @@
 package com.fooddeliveryapp.services.order;
 
 import com.fooddeliveryapp.models.cart.Cart;
-import com.fooddeliveryapp.models.notification.NotificationType;
 import com.fooddeliveryapp.models.order.*;
 import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.notification.*;
+import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
 import com.fooddeliveryapp.services.discount.DiscountService;
+import com.fooddeliveryapp.services.notification.NotificationService;
 import com.fooddeliveryapp.services.payment.PaymentStrategy;
 
 import java.util.LinkedList;
@@ -19,19 +20,21 @@ public class OrderService {
 
     private final Repository<Order> orderRepository;
     private final DiscountService discountService;
-    private final Repository<DeliveryPartner> partnerRepository;
+    private final Repository<User> userRepository;
     private final DeliveryAssignmentStrategy deliveryStrategy;
     private final Queue<Order> waitingOrders = new LinkedList<>();
+    private final NotificationService notificationService;
 
     public OrderService(Repository<Order> orderRepository,
                         DiscountService discountService,
-                        Repository<DeliveryPartner> partnerRepository,
-                        DeliveryAssignmentStrategy deliveryStrategy) {
+                        Repository<User> userRepository,
+                        DeliveryAssignmentStrategy deliveryStrategy, NotificationService notificationService) {
 
         this.orderRepository = orderRepository;
         this.discountService = discountService;
-        this.partnerRepository = partnerRepository;
+        this.userRepository = userRepository;
         this.deliveryStrategy = deliveryStrategy;
+        this.notificationService = notificationService;
     }
 
     // ----------------------------
@@ -64,19 +67,13 @@ public class OrderService {
         double discount = discountService.calculateDiscount(total);
         order.applyDiscount(discount);
 
-        order.addObserver(new ConsoleNotification());
-
-        if (customer.getNotificationPreferences().contains(NotificationType.EMAIL)) {
-            order.addObserver(new EmailNotification(customer.getEmail()));
-        }
-
-        if (customer.getNotificationPreferences().contains(NotificationType.PHONE)) {
-            order.addObserver(new PhoneNotification(customer.getPhone()));
-        }
-
         paymentStrategy.pay(order.getTotalAmount());
 
         order.markPaid(mode);
+        notificationService.notifyUser(
+                customer.getId(),
+                "Order placed successfully. Order ID: " + order.getId()
+        );
 
         orderRepository.save(order);
 
@@ -92,37 +89,59 @@ public class OrderService {
     public void confirmOrder(String orderId) {
 
         Order order = findOrder(orderId);
+
+        // 1️⃣ Confirm order by admin
         order.confirmByAdmin();
 
+        notificationService.notifyUser(
+                order.getCustomerId(),
+                "Your order has been confirmed."
+        );
+
+        // 2️⃣ Get all delivery partners
         List<DeliveryPartner> partners =
-                partnerRepository.findAll();
+                userRepository.findAll().stream()
+                        .filter(u -> u instanceof DeliveryPartner)
+                        .map(u -> (DeliveryPartner) u)
+                        .toList();
 
-        try {
-
-            DeliveryPartner selected =
-                    deliveryStrategy.assign(order, partners);
-
-            order.assignDeliveryPartner(
-                    selected.getId()
-            );
-
-            selected.setAvailable(false);
-
-            order.addObserver(
-                    new PhoneNotification(selected.getPhone())
-            );
-
-        } catch (Exception e) {
-
+        // 3️⃣ Case: No partners registered
+        if (partners.isEmpty()) {
             waitingOrders.add(order);
-            System.out.println(
-                    "All partners busy. Added to queue."
-            );
+            System.out.println("No delivery partners registered. Order added to queue.");
+            orderRepository.save(order);
+            return;
         }
 
+        // 4️⃣ Try assigning partner
+        DeliveryPartner selected =
+                deliveryStrategy.assign(order, partners);
+
+        // 5️⃣ Case: All partners busy
+        if (selected == null) {
+            waitingOrders.add(order);
+            System.out.println("All partners busy. Order added to queue.");
+            orderRepository.save(order);
+            return;
+        }
+
+        // 6️⃣ Assign partner
+        order.assignDeliveryPartner(selected.getId());
+        selected.setAvailable(false);
+
+        // 7️⃣ Notify delivery partner
+        notificationService.notifyUser(
+                selected.getId(),
+                "New order assigned. Order ID: " + order.getId()
+        );
+
+        // Optional: Phone notification observer
+        order.addObserver(new PhoneNotification(selected.getPhone()));
+
+        // 8️⃣ Persist changes
+        userRepository.save(selected);
         orderRepository.save(order);
     }
-
     // ----------------------------
     // Delivery Complete
     // ----------------------------
@@ -132,15 +151,36 @@ public class OrderService {
 
         Order order = findOrder(orderId);
 
-        order.markDelivered();
+        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY) {
+            throw new IllegalStateException("Order is not out for delivery.");
+        }
 
-        DeliveryPartner partner =
-                partnerRepository.findById(partnerId)
-                        .orElseThrow();
+        if (!partnerId.equals(order.getDeliveryPartnerId())) {
+            throw new IllegalStateException("This partner is not assigned to the order.");
+        }
+
+        order.markDelivered();
+        notificationService.notifyUser(
+                order.getCustomerId(),
+                "Your order has been delivered."
+        );
+
+        DeliveryPartner partner = userRepository.findById(partnerId)
+                .filter(u -> u instanceof DeliveryPartner)
+                .map(u -> (DeliveryPartner) u)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Delivery Partner not found"));
 
         partner.setAvailable(true);
 
+        userRepository.save(partner);
         orderRepository.save(order);
+
+        notificationService.notifyUser(
+                partner.getId(),
+                "Order delivered successfully. Order ID: " + order.getId()
+        );
+
 
         assignNextFromQueue(partner);
     }
@@ -149,74 +189,55 @@ public class OrderService {
     // Queue Handling
     // ----------------------------
 
-    private void assignNextFromQueue(
-            DeliveryPartner partner) {
+    private void assignNextFromQueue(DeliveryPartner partner) {
 
-        if (waitingOrders.isEmpty()) return;
+        if (waitingOrders.isEmpty()) {
+            return;
+        }
 
         Order next = waitingOrders.poll();
 
-        next.assignDeliveryPartner(
-                partner.getId()
-        );
+        if (next == null) {
+            return;
+        }
+
+        // Safety: Only assign confirmed orders
+        if (next.getStatus() != OrderStatus.CONFIRMED_BY_ADMIN) {
+            return;
+        }
+
+        // Assign partner (this also sets status to OUT_FOR_DELIVERY)
+        next.assignDeliveryPartner(partner.getId());
 
         partner.setAvailable(false);
 
+        // Persist both
         orderRepository.save(next);
+        userRepository.save(partner);
 
-        // 🔔 DELIVERY PARTNER NOTIFICATION
-        new PhoneNotification(
-                partner.getPhone()
-        ).update(
-                "You have been assigned Order ID: "
-                        + next.getId()
+        // Notifications
+        notificationService.notifyUser(
+                partner.getId(),
+                "New order assigned. Order ID: " + next.getId()
         );
 
-        // 🔔 CUSTOMER → OUT FOR DELIVERY
-        notifyCustomer(
-                next,
-                "Your order is out for delivery!"
+        notificationService.notifyUser(
+                next.getCustomerId(),
+                "Your order is out for delivery."
         );
+
+        System.out.println("Queued order auto-assigned: " + next.getId());
     }
 
-    // ----------------------------
-    // CUSTOMER NOTIFICATION
-    // ----------------------------
-
-    private void notifyCustomer(Order order,
-                                String message) {
-
-        Customer customer =
-                findCustomerFromOrder(order);
-
-        if (customer.getNotificationPreferences()
-                .contains(NotificationType.EMAIL)) {
-
-            new EmailNotification(
-                    customer.getEmail()
-            ).update(message);
-        }
-
-        if (customer.getNotificationPreferences()
-                .contains(NotificationType.PHONE)) {
-
-            new PhoneNotification(
-                    customer.getPhone()
-            ).update(message);
-        }
-    }
-
-    // You must implement this properly
-    // based on how you fetch customer
-    private Customer findCustomerFromOrder(
-            Order order) {
-
-        // Example:
-        // return userRepository.findById(order.getCustomerId())
-
-        throw new UnsupportedOperationException(
-                "Implement customer lookup logic here"
-        );
+    private Customer findCustomerFromOrder(Order order) {
+        return userRepository.findAll()
+                .stream()
+                .filter(u -> u instanceof Customer)
+                .map(u -> (Customer) u)
+                .filter(c -> c.getId().equals(order.getCustomerId()))
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Customer not found"));
     }
 
     // ----------------------------
@@ -251,12 +272,11 @@ public class OrderService {
     }
 
     public double calculateTotalRevenue() {
-
-        return orderRepository.findAll()
-                .stream()
-                .filter(o ->
-                        o.getStatus()
-                                == OrderStatus.DELIVERED)
+        return orderRepository.findAll().stream()
+                .filter(o -> o.getStatus() == OrderStatus.PAID
+                        || o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN
+                        || o.getStatus() == OrderStatus.OUT_FOR_DELIVERY
+                        || o.getStatus() == OrderStatus.DELIVERED)
                 .mapToDouble(Order::getFinalAmount)
                 .sum();
     }
@@ -282,5 +302,14 @@ public class OrderService {
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "Order not found"));
+    }
+
+    public void tryAssignWaitingOrdersToPartner(DeliveryPartner partner) {
+
+        if (!partner.isAvailable()) {
+            return;
+        }
+
+        assignNextFromQueue(partner);
     }
 }

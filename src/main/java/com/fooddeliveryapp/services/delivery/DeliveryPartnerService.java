@@ -3,6 +3,7 @@ package com.fooddeliveryapp.services.delivery;
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.order.OrderStatus;
 import com.fooddeliveryapp.models.repository.Repository;
+import com.fooddeliveryapp.models.repository.UserRepository;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.services.order.OrderService;
 
@@ -10,10 +11,10 @@ import java.util.List;
 
 public class DeliveryPartnerService {
 
-    private final Repository<DeliveryPartner> repository;
+    private final UserRepository repository;
     private final OrderService orderService;
 
-    public DeliveryPartnerService(Repository<DeliveryPartner> repository, OrderService orderService) {
+    public DeliveryPartnerService(UserRepository repository, OrderService orderService) {
         this.repository = repository;
         this.orderService = orderService;
     }
@@ -25,6 +26,8 @@ public class DeliveryPartnerService {
     public void updateBasicPay(String id, double newPay) {
 
         DeliveryPartner partner = repository.findById(id)
+                .filter(user -> user instanceof DeliveryPartner)
+                .map(user -> (DeliveryPartner) user)
                 .orElseThrow(() -> new EntityNotFoundException("Partner not found"));
 
         partner.updateBasicPay(newPay);
@@ -32,17 +35,21 @@ public class DeliveryPartnerService {
     }
 
     public List<DeliveryPartner> getAllPartners() {
-        return repository.findAll();
+        return repository.findAll().stream()
+                .filter(u -> u instanceof DeliveryPartner)
+                .map(u -> (DeliveryPartner) u)
+                .toList();
     }
-
-    public DeliveryPartner findById(String partnerId) {
-
-        if (partnerId == null || partnerId.isBlank()) throw new IllegalArgumentException("Partner ID is required");
-
-        return repository.findById(partnerId)
-                .orElseThrow(() -> new EntityNotFoundException("Delivery partner not found with id: " + partnerId));
+    public DeliveryPartner findById(String id) {
+        return repository.findAll().stream()
+                .filter(u -> u instanceof DeliveryPartner)
+                .map(u -> (DeliveryPartner) u)
+                .filter(p -> p.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Delivery partner not found with id: " + id));
     }
-
     public void updateIncentivePercentage(String id, double percentage) {
 
         DeliveryPartner partner = findById(id);
@@ -69,7 +76,4 @@ public class DeliveryPartnerService {
         return partner.getBasicPay() + incentive;
     }
 
-    public List<DeliveryPartner> findAll() {
-        return repository.findAll();
-    }
 }

@@ -12,6 +12,7 @@ import com.fooddeliveryapp.services.discount.DiscountService;
 import com.fooddeliveryapp.services.helper.AuthService;
 import com.fooddeliveryapp.services.helper.FileRepository;
 import com.fooddeliveryapp.services.menu.MenuService;
+import com.fooddeliveryapp.services.notification.NotificationService;
 import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
 
@@ -30,15 +31,15 @@ public class ApplicationController {
     private final AuthService authService;
     private final CartRepository cartRepository;
 
+
     public ApplicationController() {
 
         // Serialize Repositories
         Repository<Menu> menuRepository = new FileRepository<>("menu.dat");
         Repository<Order> orderRepository = new FileRepository<>("orders.dat");
-        Repository<DeliveryPartner> partnerRepository = new FileRepository<>("partners.dat");
 
         this.userRepository = new FileUserRepository("users.dat");
-        this.authService = new AuthService(userRepository, partnerRepository);
+        this.authService = new AuthService(userRepository);
         this.cartRepository = new FileCartRepository("carts.dat");
 
         // Load Menu
@@ -55,12 +56,16 @@ public class ApplicationController {
 
         DeliveryAssignmentStrategy deliveryStrategy = new FirstAvailableDeliveryAssignment();
 
+        NotificationService notificationService =
+                new NotificationService(userRepository);
+
         //Services
         MenuService menuService = new MenuService(menuRepository);
 
-        OrderService orderService = new OrderService(orderRepository, discountService, partnerRepository, deliveryStrategy);
+        OrderService orderService = new OrderService(orderRepository, discountService, userRepository, deliveryStrategy,notificationService);
 
-        DeliveryPartnerService deliveryService = new DeliveryPartnerService(partnerRepository, orderService);
+        DeliveryPartnerService deliveryService =
+                new DeliveryPartnerService(userRepository, orderService);
         // Controllers
         this.adminController = new AdminController(menuService, deliveryService, discountService, orderService, this.menu, authService);
 

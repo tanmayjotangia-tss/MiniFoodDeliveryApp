@@ -137,7 +137,7 @@ public class AdminController {
             int choice = InputUtil.readInt("Enter choice: ");
 
             switch (choice) {
-                case 1 -> displayMenuItemsWithIndex();
+                case 1 -> displayMenu();
                 case 2 -> addCategory();
                 case 3 -> addItem();
                 case 4 -> updateItem();
@@ -149,6 +149,53 @@ public class AdminController {
                 default -> System.out.println("Invalid option.");
             }
         }
+    }
+
+    private void displayMenu() {
+
+        List<MenuCategory> categories = menuService.getAllCategories();
+
+        if (categories.isEmpty()) {
+            System.out.println("\nNo menu items available.\n");
+            return;
+        }
+
+        System.out.println("\n============================================================");
+        System.out.println("                           MENU");
+        System.out.println("============================================================");
+
+        for (MenuCategory category : categories) {
+
+            System.out.println("\n=> " + category.getName() + ":-");
+
+            // 🔹 Column Header (ONLY for items)
+            System.out.printf("   %-3s %-30s %10s%n", "", "Item Name", "Price");
+            System.out.println("   ---------------------------------------------------------");
+
+            List<MenuItem> items = category.getComponents()
+                    .stream()
+                    .filter(component -> component instanceof MenuItem)
+                    .map(component -> (MenuItem) component)
+                    .toList();
+
+            if (items.isEmpty()) {
+                System.out.println("   (No items available)");
+                continue;
+            }
+
+            for (int i = 0; i < items.size(); i++) {
+                MenuItem item = items.get(i);
+
+                System.out.printf("   %-3d %-30s ₹ %8.2f%n",
+                        i + 1,
+                        item.getName(),
+                        item.getPrice());
+            }
+
+            System.out.println("------------------------------------------------------------");
+        }
+
+        System.out.println("============================================================\n");
     }
 
     private List<MenuItem> displayMenuItemsWithIndex() {
@@ -188,8 +235,6 @@ public class AdminController {
 
     private void addItem() {
 
-        displayMenuStructure();
-
         MenuCategory selectedCategory = selectCategory();
 
         if (selectedCategory == null) {
@@ -202,7 +247,7 @@ public class AdminController {
 
         try {
             MenuItem item = new MenuItem(itemName, price);
-            menuService.addItem(menu, category, item);
+            menuService.addItem(menu, selectedCategory, item);
             System.out.println("Item added successfully.");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -272,7 +317,7 @@ public class AdminController {
         }
 
         try {
-            menuService.removeCategory(menu, categoryName);
+            menuService.removeCategory(menu, selectedCategory.getName());
             System.out.println("Category removed successfully.");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -344,6 +389,10 @@ public class AdminController {
 
     private void removePartner() {
         List<DeliveryPartner> partners = deliveryService.getAllPartners();
+        if (partners.isEmpty()) {
+            System.out.println("No delivery partners present.");
+            return;
+        }
         DeliveryPartner selected = selectFromList(partners, p -> "Name: " + p.getName() + " | ID: " + p.getId());
 
         if (selected == null) return;
@@ -353,12 +402,24 @@ public class AdminController {
     }
 
     private void updatePartnerPay() {
-        viewPartners();
-        String id = InputUtil.readString("Enter partner ID: ");
+        List<DeliveryPartner> partners = deliveryService.getAllPartners();
+
+        if (partners.isEmpty()) {
+            System.out.println("No delivery partners present.");
+            return;
+        }
+
+        DeliveryPartner selected = selectFromList(
+                partners,
+                p -> "Name: " + p.getName() + " | Basic Pay: ₹" + p.getBasicPay()
+        );
+
+        if(selected==null) return;
+
         double pay = InputUtil.readDouble("Enter new basic pay: ");
 
         try {
-            deliveryService.updateBasicPay(id, pay);
+            deliveryService.updateBasicPay(selected.getId(), pay);
             System.out.println("Basic pay updated.");
         } catch (EntityNotFoundException e) {
             System.out.println("Partner not found.");
@@ -367,6 +428,10 @@ public class AdminController {
 
     private void viewPartners() {
         List<DeliveryPartner> partners = deliveryService.getAllPartners();
+        if (partners.isEmpty()) {
+            System.out.println("No delivery partners present.");
+            return;
+        }
 
         System.out.println("\n--- DELIVERY PARTNERS ---");
         for (DeliveryPartner partner : partners) {
@@ -426,7 +491,7 @@ public class AdminController {
         System.out.println("\n--- ORDER HISTORY ---");
 
         for (Order order : orders) {
-            System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomerName() + " | Final Amount: ₹" + order.getTotalAmount() + " | Status: " + order.getStatus());
+            System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomerName() + " | Final Amount: ₹" + order.getFinalAmount() + " | Status: " + order.getStatus());
         }
     }
 
@@ -453,37 +518,6 @@ public class AdminController {
                 System.out.println("Category: " + category.getName());
             }
         }
-    }
-
-    private void displayMenuItems() {
-
-        System.out.println("\n--- MENU ITEMS ---");
-
-        for (MenuComponent component : menu.getRootCategory().getComponents()) {
-
-            if (component instanceof MenuCategory category) {
-
-                for (MenuComponent item : category.getComponents()) {
-
-                    if (item instanceof MenuItem menuItem) {
-
-                        System.out.println("ID: " + menuItem.getId() + " | Name: " + menuItem.getName() + " | Price: ₹" + menuItem.getPrice());
-                    }
-                }
-            }
-        }
-    }
-
-    private MenuCategory findCategoryByName(String name) {
-
-        for (MenuComponent component : menu.getRootCategory().getComponents()) {
-
-            if (component instanceof MenuCategory category) {
-
-                if (category.getName().equalsIgnoreCase(name.trim())) return category;
-            }
-        }
-        return null;
     }
 
     private void manageOrders() {
@@ -598,19 +632,6 @@ public class AdminController {
     private void logout() {
         loggedInAdmin = null;
         System.out.println("Admin logged out.");
-    }
-
-    private void printLine(char ch) {
-        for (int i = 0; i < 60; i++) {
-            System.out.print(ch);
-        }
-        System.out.println();
-    }
-
-    private void centerText(String text, int width) {
-        int padding = (width - text.length()) / 2;
-        if (padding < 0) padding = 0;
-        System.out.printf("%" + (padding + text.length()) + "s%n", text);
     }
 
     private List<MenuItem> getAllMenuItems() {

@@ -1,6 +1,11 @@
 package com.fooddeliveryapp.models.users;
 
+import com.fooddeliveryapp.models.notification.AppNotification;
+
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 public abstract class User implements Serializable {
@@ -12,6 +17,7 @@ public abstract class User implements Serializable {
     protected String email;
     protected String phone;
     protected String password;
+    protected List<AppNotification> notifications = new ArrayList<>();
 
     protected User(String name, String email, String phone, String password) {
 
@@ -49,4 +55,12 @@ public abstract class User implements Serializable {
     }
 
     public abstract Role getRole();
+
+    public void addNotification(String message) {
+        notifications.add(new AppNotification(message));
+    }
+
+    public List<AppNotification> getNotifications() {
+        return Collections.unmodifiableList(notifications);
+    }
 }

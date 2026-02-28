@@ -1,6 +1,8 @@
 package com.fooddeliveryapp.models.users;
 
-public class DeliveryPartner extends User {
+import java.io.Serializable;
+
+public class DeliveryPartner extends User implements Serializable {
 
     private boolean available;
     private double basicPay;

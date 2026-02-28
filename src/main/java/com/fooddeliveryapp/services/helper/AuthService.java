@@ -5,6 +5,7 @@ import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.models.repository.Repository;
+import com.fooddeliveryapp.services.order.OrderService;
 
 import java.util.Optional;
 import java.util.Set;
@@ -12,11 +13,10 @@ import java.util.Set;
 public class AuthService {
 
     private final Repository<User> userRepository;
-    private final Repository<DeliveryPartner> partnerRepository;
+    private OrderService orderService;
 
-    public AuthService(Repository<User> userRepository, Repository<DeliveryPartner> partnerRepository) {
+    public AuthService(Repository<User> userRepository) {
         this.userRepository = userRepository;
-        this.partnerRepository = partnerRepository;
     }
 
     // =========================
@@ -60,21 +60,17 @@ public class AuthService {
                 email,
                 phone,
                 password,
-                0
+                5000
         );
 
-        partnerRepository.save(partner);
 
+        userRepository.save(partner);
+        orderService.tryAssignWaitingOrdersToPartner(partner);
         return true;
     }
 
-    // =========================
-    // LOGIN
-    // =========================
-
     public User login(String email, String password) {
 
-        // Check normal users
         User user = userRepository.findAll()
                 .stream()
                 .filter(u -> u.getEmail().equalsIgnoreCase(email)
@@ -82,17 +78,7 @@ public class AuthService {
                 .findFirst()
                 .orElse(null);
 
-        if (user != null) {
-            return user;
-        }
-
-        // Check delivery partners
-        return partnerRepository.findAll()
-                .stream()
-                .filter(p -> p.getEmail().equalsIgnoreCase(email)
-                        && p.getPassword().equals(password))
-                .findFirst()
-                .orElse(null);
+        return user;
     }
 
     // =========================

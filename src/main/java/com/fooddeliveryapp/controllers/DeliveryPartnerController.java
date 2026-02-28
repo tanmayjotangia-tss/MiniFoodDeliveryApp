@@ -62,10 +62,7 @@ public class DeliveryPartnerController {
 
             case 4 -> viewEarning();
 
-            case 5 -> {
-                logout();
-                System.out.println("Logged out successfully.");
-            }
+            case 5 -> logout();
 
             case 6 -> {
                 return false;

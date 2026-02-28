@@ -14,9 +14,6 @@ public class FirstAvailableDeliveryAssignment implements DeliveryAssignmentStrat
         return partners.stream()
                 .filter(DeliveryPartner::isAvailable)
                 .findFirst()
-                .orElseThrow(() ->
-                        new InvalidOperationException(
-                                "No delivery partner available"
-                        ));
+                .orElse(null);
     }
 }

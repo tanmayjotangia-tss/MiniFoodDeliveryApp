@@ -1,30 +1,51 @@
 package com.fooddeliveryapp.services.notification;
 
-import com.fooddeliveryapp.models.users.Customer;
-import com.fooddeliveryapp.models.notification.NotificationType;
+import com.fooddeliveryapp.models.notification.*;
+import com.fooddeliveryapp.models.users.*;
+import com.fooddeliveryapp.models.repository.Repository;
 
 public class NotificationService {
 
-    public void notifyCustomer(Customer customer, String message) {
+    private final Repository<User> userRepository;
 
-        if (customer.getNotificationPreferences()
-                .contains(NotificationType.EMAIL)) {
-
-            sendEmail(customer.getEmail(), message);
-        }
-
-        if (customer.getNotificationPreferences()
-                .contains(NotificationType.PHONE)) {
-
-            sendSMS(customer.getPhone(), message);
-        }
+    public NotificationService(Repository<User> userRepository) {
+        this.userRepository = userRepository;
     }
 
-    private void sendEmail(String email, String message) {
-        System.out.println("Sending EMAIL to " + email + ": " + message);
+    // 🎯 MAIN ENTRY POINT
+    public void notifyUser(String userId, String message) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found"));
+
+        // 1️⃣ Add In-App Notification
+        user.addNotification(message);
+
+        // 2️⃣ External Notifications (Observer style simulation)
+        sendExternalNotifications(user, message);
     }
 
-    private void sendSMS(String phone, String message) {
-        System.out.println("Sending SMS to " + phone + ": " + message);
+    // 🔔 Handle EMAIL + SMS via Observer
+    private void sendExternalNotifications(User user, String message) {
+
+        if (user instanceof Customer customer) {
+
+            if (customer.getNotificationPreferences()
+                    .contains(NotificationType.EMAIL)) {
+                new EmailNotification(customer.getEmail()).update(message);
+            }
+
+            if (customer.getNotificationPreferences()
+                    .contains(NotificationType.PHONE)) {
+                new PhoneNotification(customer.getPhone()).update(message);
+            }
+
+        } else if (user instanceof DeliveryPartner partner) {
+
+            // Delivery partner usually gets SMS
+            new PhoneNotification(partner.getPhone())
+                    .update(message);
+        }
     }
 }
