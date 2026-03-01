@@ -1,10 +1,12 @@
 package com.fooddeliveryapp.services.helper;
 
+import com.fooddeliveryapp.exception.EntityNotFoundException;
+import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.notification.NotificationType;
+import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
-import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.services.order.OrderService;
 
 import java.util.Optional;
@@ -20,59 +22,41 @@ public class AuthService {
         this.orderService = orderService;
     }
 
-    // =========================
-    // REGISTER CUSTOMER
-    // =========================
-    public boolean registerCustomer(String name,
-                                    String email,
-                                    String phone,
-                                    String address,
-                                    String password,
-                                    Set<NotificationType> preferences) {
+    public boolean registerCustomer(String name, String email, String phone, String address, String password, Set<NotificationType> preferences) {
 
         if (emailExists(email)) {
             return false;
         }
 
-        if(phoneExists(phone)) {
+        if (phoneExists(phone)) {
             return false;
         }
 
-        User customer = new Customer(
-                name,
-                email,
-                phone,
-                address,
-                password,
-                preferences
-        );
+        User customer = new Customer(name, email, phone, address, password, preferences);
+
+        if(customer == null) {
+            throw new EntityNotFoundException("Customer not found");
+        }
+
         userRepository.save(customer);
         return true;
     }
 
-    // =========================
-    // REGISTER DELIVERY PARTNER
-    // =========================
-    public boolean registerDeliveryPartner(String name,
-                                           String email,
-                                           String phone,
-                                           String password) {
+    public boolean registerDeliveryPartner(String name, String email, String phone, String password) {
 
         if (emailExists(email)) {
             return false;
         }
 
-        if(phoneExists(phone)) {
+        if (phoneExists(phone)) {
             return false;
         }
 
-        DeliveryPartner partner = new DeliveryPartner(
-                name,
-                email,
-                phone,
-                password,
-                5000
-        );
+        DeliveryPartner partner = new DeliveryPartner(name, email, phone, password, 5000);
+
+        if(partner == null){
+            throw new EntityNotFoundException("DeliveryPartner not found");
+        }
 
 
         userRepository.save(partner);
@@ -84,22 +68,22 @@ public class AuthService {
 
         User user = userRepository.findAll()
                 .stream()
-                .filter(u -> u.getEmail().equalsIgnoreCase(email)
-                        && u.getPassword().equals(password))
-                .findFirst()
-                .orElse(null);
+                .filter(u -> u.getEmail()
+                        .equalsIgnoreCase(email) && u.getPassword().equals(password))
+                .findFirst().orElse(null);
+
+        if(user == null){
+            throw new EntityNotFoundException("User not found");
+        }
 
         return user;
     }
 
-    // =========================
-    // HELPER
-    // =========================
     private boolean emailExists(String email) {
         Optional<User> existingUser = userRepository.findAll()
                 .stream()
-                .filter(u -> u.getEmail().equalsIgnoreCase(email))
-                .findFirst();
+                .filter(u -> u.getEmail()
+                        .equalsIgnoreCase(email)).findFirst();
 
         return existingUser.isPresent();
     }

@@ -24,11 +24,6 @@ public class DeliveryPartnerService {
         repository.delete(id);
     }
 
-//    public Optional<DeliveryPartner> findById(String id) {
-//        return repository.findById(id)
-//                .filter(u -> u instanceof DeliveryPartner)
-//                .map(u -> (DeliveryPartner) u);
-//    }
 
     public void updateBasicPay(String id, double newPay) {
 
@@ -47,6 +42,7 @@ public class DeliveryPartnerService {
                 .map(u -> (DeliveryPartner) u)
                 .toList();
     }
+
     public DeliveryPartner findById(String id) {
         return repository.findAll().stream()
                 .filter(u -> u instanceof DeliveryPartner)
@@ -57,9 +53,14 @@ public class DeliveryPartnerService {
                         new EntityNotFoundException(
                                 "Delivery partner not found with id: " + id));
     }
+
     public void updateIncentivePercentage(String id, double percentage) {
 
         DeliveryPartner partner = findById(id);
+
+        if(partner == null){
+            throw new EntityNotFoundException("Delivery partner not found with id: " + id);
+        }
 
         partner.updateIncentivePercentage(percentage);
 
@@ -70,6 +71,10 @@ public class DeliveryPartnerService {
 
         DeliveryPartner partner = findById(partnerId);
 
+        if(partner == null){
+            throw new EntityNotFoundException("Delivery partner not found with id: " + partnerId);
+        }
+
         double deliveredRevenue = orderService
                 .getOrdersByPartner(partnerId)
                 .stream()
@@ -77,8 +82,7 @@ public class DeliveryPartnerService {
                 .mapToDouble(o -> o.getTotalAmount())
                 .sum();
 
-        double incentive =
-                deliveredRevenue * (partner.getIncentivePercentage() / 100);
+        double incentive = deliveredRevenue * (partner.getIncentivePercentage() / 100);
 
         return partner.getBasicPay() + incentive;
     }

@@ -1,11 +1,13 @@
 package com.fooddeliveryapp.models.order;
 
-import com.fooddeliveryapp.models.notification.*;
 import com.fooddeliveryapp.services.notification.OrderObserver;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 public class Order implements Serializable {
 
@@ -14,13 +16,10 @@ public class Order implements Serializable {
     private final String id;
     private final String customerId;
     private final String customerName;
-
-    private PaymentMode paymentMode;
-    private String deliveryPartnerId;
-
     private final List<OrderItem> items;
     private final LocalDateTime createdAt;
-
+    private PaymentMode paymentMode;
+    private String deliveryPartnerId;
     private OrderStatus status;
     private double discount;
 
@@ -28,8 +27,7 @@ public class Order implements Serializable {
 
     public Order(String customerId, String customerName) {
 
-        if (customerId == null || customerId.isBlank())
-            throw new IllegalArgumentException("Customer required");
+        if (customerId == null || customerId.isBlank()) throw new IllegalArgumentException("Customer required");
 
         this.id = UUID.randomUUID().toString();
         this.customerId = customerId;
@@ -60,16 +58,14 @@ public class Order implements Serializable {
     //    Order Lifecycle
     public void addItem(OrderItem item) {
 
-        if (status != OrderStatus.CREATED)
-            throw new IllegalStateException("Cannot modify after payment");
+        if (status != OrderStatus.CREATED) throw new IllegalStateException("Cannot modify after payment");
 
         items.add(item);
     }
 
     public void markPaid(PaymentMode mode) {
 
-        if (items.isEmpty())
-            throw new IllegalStateException("Empty order");
+        if (items.isEmpty()) throw new IllegalStateException("Empty order");
 
         this.status = OrderStatus.PAID;
         this.paymentMode = mode;
@@ -79,21 +75,18 @@ public class Order implements Serializable {
 
     public void confirmByAdmin() {
 
-        if (status != OrderStatus.PAID)
-            throw new IllegalStateException("Only PAID orders allowed");
+        if (status != OrderStatus.PAID) throw new IllegalStateException("Only PAID orders allowed");
 
         status = OrderStatus.CONFIRMED_BY_ADMIN;
 
         // Notification ownership: ALL order lifecycle events fire notifyObservers()
         // here inside Order, never via direct notificationService calls in services.
-        notifyObservers("Your order #" + id.substring(0, 8)
-                + " has been confirmed and is being prepared.");
+        notifyObservers("Your order #" + id.substring(0, 8) + " has been confirmed and is being prepared.");
     }
 
     public void assignDeliveryPartner(String partnerId) {
 
-        if (status != OrderStatus.CONFIRMED_BY_ADMIN)
-            throw new IllegalStateException("Order not confirmed");
+        if (status != OrderStatus.CONFIRMED_BY_ADMIN) throw new IllegalStateException("Order not confirmed");
 
         this.deliveryPartnerId = partnerId;
         status = OrderStatus.OUT_FOR_DELIVERY;
@@ -103,8 +96,7 @@ public class Order implements Serializable {
 
     public void markDelivered() {
 
-        if (status != OrderStatus.OUT_FOR_DELIVERY)
-            throw new IllegalStateException("Not out for delivery");
+        if (status != OrderStatus.OUT_FOR_DELIVERY) throw new IllegalStateException("Not out for delivery");
 
         status = OrderStatus.DELIVERED;
 
@@ -118,56 +110,58 @@ public class Order implements Serializable {
 
     public void cancel() {
 
-        if (status == OrderStatus.DELIVERED)
-            throw new IllegalStateException(
-                    "Delivered order cannot be cancelled."
-            );
+        if (status == OrderStatus.DELIVERED) throw new IllegalStateException("Delivered order cannot be cancelled.");
 
-        if (status == OrderStatus.CANCELLED)
-            throw new IllegalStateException(
-                    "Order already cancelled."
-            );
+        if (status == OrderStatus.CANCELLED) throw new IllegalStateException("Order already cancelled.");
 
         this.status = OrderStatus.CANCELLED;
 
         notifyObservers("Order has been cancelled.");
     }
 
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getCustomerId() { return customerId; }
+    public String getCustomerId() {
+        return customerId;
+    }
 
-    public String getCustomerName() { return customerName; }
+    public String getCustomerName() {
+        return customerName;
+    }
 
-    public String getDeliveryPartnerId() { return deliveryPartnerId; }
+    public String getDeliveryPartnerId() {
+        return deliveryPartnerId;
+    }
 
-    public OrderStatus getStatus() { return status; }
+    public OrderStatus getStatus() {
+        return status;
+    }
 
-    public PaymentMode getPaymentMode() { return paymentMode; }
+    public PaymentMode getPaymentMode() {
+        return paymentMode;
+    }
 
     public List<OrderItem> getItems() {
         return Collections.unmodifiableList(items);
     }
 
     public double getTotalAmount() {
-        return items.stream()
-                .mapToDouble(OrderItem::subtotal)
-                .sum();
+        return items.stream().mapToDouble(OrderItem::subtotal).sum();
     }
 
     public double getFinalAmount() {
         return getTotalAmount() - discount;
     }
 
-    //    Serialization Safety
-    private void readObject(java.io.ObjectInputStream in)
-            throws Exception {
-
-        in.defaultReadObject();
-        observers = new ArrayList<>();
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void clearObservers() {
+        if (observers != null) {
+            observers.clear();
+        }
     }
 }

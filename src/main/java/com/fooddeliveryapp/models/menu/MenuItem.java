@@ -28,10 +28,7 @@ public class MenuItem extends MenuComponent {
 
     @Override
     public void display(String indent) {
-        System.out.printf("%s- %-25s ₹%8.2f%n",
-                indent,
-                trim(name, 25),
-                price);
+        System.out.printf("%s- %-25s ₹%8.2f%n", indent, trim(name, 25), price);
     }
 
     private String trim(String text, int maxLength) {

@@ -1,5 +1,7 @@
 package com.fooddeliveryapp.services.menu;
 
+import com.fooddeliveryapp.exception.DuplicateEntityException;
+import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;
 import com.fooddeliveryapp.models.menu.MenuComponent;
@@ -17,7 +19,11 @@ public class MenuService {
     }
 
     public void addCategory(Menu menu, MenuCategory category) {
-        menu.addCategory(category);
+        try{
+            menu.addCategory(category);
+        }catch(Exception e){
+            System.out.println(category.getName() + " already exists!");
+        }
         menuRepository.save(menu);
     }
 
@@ -27,7 +33,6 @@ public class MenuService {
     }
 
     public void updateItem(Menu menu, String itemId, double newPrice) {
-
         menu.updateItem(itemId, newPrice);
         menuRepository.save(menu);
     }
@@ -42,18 +47,13 @@ public class MenuService {
         menuRepository.save(menu);
     }
 
-
-    public List<MenuComponent> getFullMenu(Menu menu) {
-        return menu.getRootCategory().getComponents();
-    }
-
     public List<MenuCategory> getAllCategories() {
 
         Menu menu = menuRepository.findAll()
                 .stream()
                 .findFirst()
                 .orElseThrow(() ->
-                        new IllegalStateException("Menu not found"));
+                        new EntityNotFoundException("Menu not found"));
 
         return menu.getRootCategory()
                 .getComponents()

@@ -5,7 +5,6 @@ import com.fooddeliveryapp.models.notification.AppNotification;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,10 +70,5 @@ public abstract class User implements Serializable {
 
     public void clearNotifications() {
         notifications.clear();
-    }
-
-    public void autoCleanOldNotifications(int days) {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
-        notifications.removeIf(n -> n.getTimestamp().isBefore(cutoff));
     }
 }

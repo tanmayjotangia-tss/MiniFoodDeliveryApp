@@ -3,7 +3,6 @@ package com.fooddeliveryapp.services.helper;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderItem;
 
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class InvoicePrinter {
@@ -36,9 +35,9 @@ public class InvoicePrinter {
 
         for (OrderItem item : order.getItems()) {
 
-            String name = item.getItem().getName();
-            int qty = item.getQuantity();
-            double price = item.getItem().getPrice();
+            String name = item.item().getName();
+            int qty = item.quantity();
+            double price = item.item().getPrice();
             double subtotal = item.subtotal();
 
             total += subtotal;

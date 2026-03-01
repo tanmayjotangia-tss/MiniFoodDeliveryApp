@@ -42,9 +42,7 @@ public class AppNotification implements Serializable {
     }
 
     public String getFormattedTime() {
-        return timestamp.format(
-                DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
-        );
+        return timestamp.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
     }
 
     @Override
@@ -52,9 +50,6 @@ public class AppNotification implements Serializable {
 
         String status = read ? "[READ]" : "[NEW]";
 
-        return status + " " +
-                getFormattedTime() +
-                " | " +
-                message;
+        return status + " " + getFormattedTime() + " | " + message;
     }
 }

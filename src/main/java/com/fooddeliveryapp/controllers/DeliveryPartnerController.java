@@ -5,8 +5,8 @@ import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
-import com.fooddeliveryapp.services.helper.AuthService;
 import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
+import com.fooddeliveryapp.services.helper.AuthService;
 import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
 
@@ -45,11 +45,35 @@ public class DeliveryPartnerController {
         try {
             partnerService.findById(loggedInPartner.getId());
             return true;
-        } catch (EntityNotFoundException e) {
+        } catch (Exception e) {
             System.out.println("Your account has been removed by admin.");
             logout();
             return false;
         }
+    }
+
+    private boolean showPreLoginMenu() {
+
+        System.out.println("\n=== DELIVERY PARTNER PANEL ===");
+        System.out.println("1. Login");
+        System.out.println("2. Register");
+        System.out.println("3. Back to Main Menu");
+
+        int choice = InputUtil.readInt("Enter choice: ");
+
+        switch (choice) {
+
+            case 1 -> handleLogin();
+
+            case 2 -> handleRegister();
+
+            case 3 -> {
+                return false;
+            }
+
+            default -> System.out.println("Invalid choice.");
+        }
+        return true;
     }
 
     private boolean showDashboardMenu() {
@@ -90,31 +114,6 @@ public class DeliveryPartnerController {
         return true;
     }
 
-    private boolean showPreLoginMenu() {
-
-        System.out.println("\n=== DELIVERY PARTNER PANEL ===");
-        System.out.println("1. Login");
-        System.out.println("2. Register");
-        System.out.println("3. Back to Main Menu");
-
-        int choice = InputUtil.readInt("Enter choice: ");
-
-        switch (choice) {
-
-            case 1 -> handleLogin();
-
-            case 2 -> handleRegister();
-
-            case 3 -> {
-                return false;
-            }
-
-            default -> System.out.println("Invalid choice.");
-        }
-        return true;
-    }
-
-
     //    Assigned Orders
     private void viewOrders() {
 
@@ -133,10 +132,7 @@ public class DeliveryPartnerController {
 
             for (int i = 0; i < orders.size(); i++) {
                 Order o = orders.get(i);
-                System.out.println((i + 1) + ". ID: " + o.getId()
-                        + " | Customer: " + o.getCustomerName()
-                        + " | Status: " + o.getStatus()
-                        + " | Amount: ₹" + o.getTotalAmount());
+                System.out.println((i + 1) + ". ID: " + o.getId() + " | Customer: " + o.getCustomerName() + " | Status: " + o.getStatus() + " | Amount: ₹" + o.getTotalAmount());
             }
         } catch (Exception e) {
             System.out.println("Failed to load orders: " + e.getMessage());
@@ -148,8 +144,7 @@ public class DeliveryPartnerController {
 
         List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId())
                 .stream()
-                .filter(o -> o.getStatus() == OrderStatus.OUT_FOR_DELIVERY)
-                .toList();
+                .filter(o -> o.getStatus() == OrderStatus.OUT_FOR_DELIVERY).toList();
 
         if (orders.isEmpty()) {
             System.out.println("No orders ready.");
@@ -173,8 +168,7 @@ public class DeliveryPartnerController {
         try {
             List<Order> delivered = orderService.getOrdersByPartner(loggedInPartner.getId())
                     .stream()
-                    .filter(o -> o.getStatus() == OrderStatus.DELIVERED)
-                    .toList();
+                    .filter(o -> o.getStatus() == OrderStatus.DELIVERED).toList();
 
             if (delivered.isEmpty()) {
                 System.out.println("No delivered orders yet.");
@@ -185,9 +179,7 @@ public class DeliveryPartnerController {
 
             for (int i = 0; i < delivered.size(); i++) {
                 Order o = delivered.get(i);
-                System.out.println((i + 1) + ". ID: " + o.getId()
-                        + " | Customer: " + o.getCustomerName()
-                        + " | Amount: ₹" + o.getTotalAmount());
+                System.out.println((i + 1) + ". ID: " + o.getId() + " | Customer: " + o.getCustomerName() + " | Amount: ₹" + o.getTotalAmount());
             }
         } catch (Exception e) {
             System.out.println("Failed to load delivery history: " + e.getMessage());
@@ -200,8 +192,7 @@ public class DeliveryPartnerController {
 
             System.out.println("\n=== EARNINGS SUMMARY ===");
             System.out.println("Basic Pay: ₹" + loggedInPartner.getBasicPay());
-            System.out.println("Incentive Percentage: "
-                    + loggedInPartner.getIncentivePercentage() + "%");
+            System.out.println("Incentive Percentage: " + loggedInPartner.getIncentivePercentage() + "%");
             System.out.println("----------------------------");
             System.out.println("Total Earnings: ₹" + totalEarnings);
         } catch (Exception e) {
@@ -236,13 +227,18 @@ public class DeliveryPartnerController {
         String email = InputUtil.readEmail("Enter Email: ");
         String password = InputUtil.readPassword("Enter Password: ");
 
-        User user = authService.login(email, password);
+        try {
+            User user = authService.login(email, password);
 
-        if (user instanceof DeliveryPartner partner) {
-            loggedInPartner = partner;
-            System.out.println("Delivery Partner logged in successfully.");
-        } else {
-            System.out.println("Invalid credentials.");
+            if (user instanceof DeliveryPartner partner) {
+                loggedInPartner = partner;
+                System.out.println("Delivery Partner logged in successfully.");
+            } else {
+                System.out.println("Invalid credentials.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Invalid credentials. " + e.getMessage());
         }
     }
 

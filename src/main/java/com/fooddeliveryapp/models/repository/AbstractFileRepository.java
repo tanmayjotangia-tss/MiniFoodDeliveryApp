@@ -13,9 +13,7 @@ public abstract class AbstractFileRepository<T> {
     }
 
     protected void saveToFile(List<T> data) {
-        try (ObjectOutputStream oos =
-                     new ObjectOutputStream(
-                             new FileOutputStream(filePath))) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
 
             oos.writeObject(data);
 
@@ -33,9 +31,7 @@ public abstract class AbstractFileRepository<T> {
             return new ArrayList<>();
         }
 
-        try (ObjectInputStream ois =
-                     new ObjectInputStream(
-                             new FileInputStream(filePath))) {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
 
             return (List<T>) ois.readObject();
 

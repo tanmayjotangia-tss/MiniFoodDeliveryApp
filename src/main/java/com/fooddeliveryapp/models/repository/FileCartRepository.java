@@ -19,12 +19,10 @@ public class FileCartRepository
 
     @Override
     public void save(Cart cart) {
-
         carts.removeIf(c ->
                 c.getCustomer().getId()
                         .equals(cart.getCustomer().getId())
         );
-
         carts.add(cart);
         saveToFile(carts);
     }

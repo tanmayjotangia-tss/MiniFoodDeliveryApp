@@ -24,7 +24,10 @@ public class Cart implements Serializable {
 
         if (quantity <= 0) throw new InvalidOperationException("Quantity must be positive");
 
-        Optional<CartItem> existing = items.stream().filter(ci -> ci.getItem().getId().equals(item.getId())).findFirst();
+        Optional<CartItem> existing = items.
+                stream()
+                .filter(ci -> ci.getItem().getId().equals(item.getId()))
+                .findFirst();
 
         if (existing.isPresent()) {
             existing.get().increaseQuantity(quantity);
@@ -35,7 +38,10 @@ public class Cart implements Serializable {
 
     public void decreaseItemQuantity(String itemId, int quantity) {
 
-        CartItem cartItem = items.stream().filter(ci -> ci.getItem().getId().equals(itemId)).findFirst().orElseThrow(() -> new InvalidOperationException("Item not in cart"));
+        CartItem cartItem = items.stream()
+                .filter(ci -> ci.getItem().getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new InvalidOperationException("Item not in cart"));
 
         if (quantity <= 0) throw new InvalidOperationException("Invalid quantity");
 
@@ -92,8 +98,7 @@ public class Cart implements Serializable {
         centerText("YOUR CART", WIDTH);
         printLine('=');
 
-        System.out.printf("%-4s %-20s %-6s %-10s %-10s%n",
-                "No", "Item", "Qty", "Price", "Subtotal");
+        System.out.printf("%-4s %-20s %-6s %-10s %-10s%n", "No", "Item", "Qty", "Price", "Subtotal");
 
         printLine('-');
 
@@ -109,12 +114,7 @@ public class Cart implements Serializable {
 
             total += subtotal;
 
-            System.out.printf("%-4d %-20s %-6d %-10.2f %-10.2f%n",
-                    index++,
-                    trim(name, 20),
-                    qty,
-                    price,
-                    subtotal);
+            System.out.printf("%-4d %-20s %-6d %-10.2f %-10.2f%n", index++, trim(name, 20), qty, price, subtotal);
         }
 
         printLine('-');
@@ -131,6 +131,7 @@ public class Cart implements Serializable {
 
         printLine('=');
     }
+
     private void printLine(char ch) {
         for (int i = 0; i < 60; i++) {
             System.out.print(ch);

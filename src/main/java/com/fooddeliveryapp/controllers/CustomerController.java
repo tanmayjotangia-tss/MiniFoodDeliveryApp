@@ -1,5 +1,6 @@
 package com.fooddeliveryapp.controllers;
 
+import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
@@ -7,16 +8,18 @@ import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuItem;
 import com.fooddeliveryapp.models.notification.AppNotification;
 import com.fooddeliveryapp.models.notification.NotificationType;
-import com.fooddeliveryapp.models.order.*;
+import com.fooddeliveryapp.models.order.Order;
+import com.fooddeliveryapp.models.order.OrderItem;
+import com.fooddeliveryapp.models.order.PaymentMode;
 import com.fooddeliveryapp.models.repository.CartRepository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.services.discount.DiscountService;
 import com.fooddeliveryapp.services.helper.AuthService;
-import com.fooddeliveryapp.services.order.OrderService;
-import com.fooddeliveryapp.services.payment.PaymentStrategy;
-import com.fooddeliveryapp.services.payment.PaymentFactory;
 import com.fooddeliveryapp.services.helper.InvoicePrinter;
+import com.fooddeliveryapp.services.order.OrderService;
+import com.fooddeliveryapp.services.payment.PaymentFactory;
+import com.fooddeliveryapp.services.payment.PaymentStrategy;
 import com.fooddeliveryapp.utils.InputUtil;
 
 import java.time.format.DateTimeFormatter;
@@ -26,11 +29,11 @@ public class CustomerController {
 
     private final OrderService orderService;
     private final Menu menu;
-    private Cart cart;
-    private Customer loggedInCustomer;
     private final AuthService authService;
     private final CartRepository cartRepository;
     private final DiscountService discountService;
+    private Cart cart;
+    private Customer loggedInCustomer;
 
     public CustomerController(OrderService orderService, Menu menu, AuthService authService, CartRepository cartRepository, DiscountService discountService) {
         this.orderService = orderService;
@@ -79,9 +82,7 @@ public class CustomerController {
 
     private boolean showDashboardMenu() {
 
-        cart = cartRepository
-                .findByCustomerId(loggedInCustomer.getId())
-                .orElse(cart);
+        cart = cartRepository.findByCustomerId(loggedInCustomer.getId()).orElse(cart);
 
         System.out.println("\n====== CUSTOMER DASHBOARD ======");
         System.out.println("1. Add Item");
@@ -127,8 +128,7 @@ public class CustomerController {
 
     private void viewNotifications() {
 
-        List<AppNotification> notifications =
-                new ArrayList<>(loggedInCustomer.getNotifications());
+        List<AppNotification> notifications = new ArrayList<>(loggedInCustomer.getNotifications());
 
         if (notifications.isEmpty()) {
             System.out.println("No notifications.");
@@ -136,14 +136,10 @@ public class CustomerController {
         }
 
         // Sort newest first
-        notifications.sort(
-                Comparator.comparing(AppNotification::getTimestamp)
-                        .reversed()
-        );
+        notifications.sort(Comparator.comparing(AppNotification::getTimestamp).reversed());
 
         int pageSize = 5;
-        int totalPages =
-                (int) Math.ceil((double) notifications.size() / pageSize);
+        int totalPages = (int) Math.ceil((double) notifications.size() / pageSize);
 
         int currentPage = 1;
 
@@ -157,9 +153,7 @@ public class CustomerController {
             System.out.println("--------------------------------------------------");
 
             for (int i = start; i < end; i++) {
-                System.out.println(
-                        (i + 1) + ". " + notifications.get(i)
-                );
+                System.out.println((i + 1) + ". " + notifications.get(i));
             }
 
             System.out.println("--------------------------------------------------");
@@ -259,9 +253,7 @@ public class CustomerController {
 
         for (int i = 0; i < items.size(); i++) {
             CartItem ci = items.get(i);
-            System.out.println((i + 1) + ". "
-                    + ci.getItem().getName()
-                    + " x" + ci.getQuantity());
+            System.out.println((i + 1) + ". " + ci.getItem().getName() + " x" + ci.getQuantity());
         }
 
         int selection = InputUtil.readInt("Enter choice (0 to cancel): ");
@@ -294,13 +286,10 @@ public class CustomerController {
                     }
 
                     try {
-                        cart.decreaseItemQuantity(
-                                selected.getItem().getId(),
-                                qty
-                        );
+                        cart.decreaseItemQuantity(selected.getItem().getId(), qty);
                         System.out.println("Quantity updated.");
                         break;
-                    } catch (InvalidOperationException e) {
+                    } catch (Exception e) {
                         System.out.println(e.getMessage());
                         break;
                     }
@@ -365,18 +354,27 @@ public class CustomerController {
         String email = InputUtil.readEmail("Enter Email: ");
         String password = InputUtil.readPassword("Enter Password: ");
 
-        User user = authService.login(email, password);
+        try {
+            User user = authService.login(email, password);
 
-        if (user instanceof Customer customer) {
-            loggedInCustomer = customer;
-            cart = cartRepository.findByCustomerId(loggedInCustomer.getId()).orElseGet(() -> {
-                Cart newCart = new Cart(loggedInCustomer);
-                cartRepository.save(newCart);
-                return newCart;
-            });
-            System.out.println("Customer logged in.");
-        } else {
-            System.out.println("Invalid credentials.");
+            if (user instanceof Customer customer) {
+                loggedInCustomer = customer;
+
+                cart = cartRepository
+                        .findByCustomerId(loggedInCustomer.getId())
+                        .orElseGet(() -> {
+                            Cart newCart = new Cart(loggedInCustomer);
+                            cartRepository.save(newCart);
+                            return newCart;
+                        });
+
+                System.out.println("Customer logged in.");
+            } else {
+                System.out.println("Invalid credentials.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Invalid credentials. " + e.getMessage());
         }
     }
 
@@ -414,12 +412,19 @@ public class CustomerController {
             }
         }
 
-        boolean success = authService.registerCustomer(name, email, phone,address, password, preferences);
+        boolean success = false;
 
-        if (success) {
-            System.out.println("Registration successful!");
-        } else {
-            System.out.println("Email already exists.");
+        try {
+            success = authService.registerCustomer(name, email, phone, address, password, preferences);
+
+            if (success) {
+                System.out.println("Registration successful!");
+            } else {
+                System.out.println("Email already exists.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Email already in use. " + e.getMessage());
         }
     }
 
@@ -459,9 +464,7 @@ public class CustomerController {
     private void viewCart() {
 
         try {
-            cart = cartRepository
-                    .findByCustomerId(loggedInCustomer.getId())
-                    .orElse(cart);
+            cart = cartRepository.findByCustomerId(loggedInCustomer.getId()).orElse(cart);
 
             if (cart.getItems().isEmpty()) {
                 System.out.println("Cart is empty.");
@@ -502,8 +505,7 @@ public class CustomerController {
             return;
         }
 
-        System.out.printf("%-4s %-20s %-12s %-18s %s%n",
-                "No", "Order ID", "Date", "Status", "Amount");
+        System.out.printf("%-4s %-20s %-12s %-18s %s%n", "No", "Order ID", "Date", "Status", "Amount");
 
         System.out.println("------------------------------------------------------------");
 
@@ -512,15 +514,9 @@ public class CustomerController {
         for (Order order : orders) {
 
             String shortId = order.getId().substring(0, 8);
-            String date = order.getCreatedAt()
-                    .format(DateTimeFormatter.ofPattern("dd-MM-yy"));
+            String date = order.getCreatedAt().format(DateTimeFormatter.ofPattern("dd-MM-yy"));
 
-            System.out.printf("%-4d %-20s %-12s %-18s %.2f%n",
-                    index++,
-                    shortId,
-                    date,
-                    order.getStatus(),
-                    order.getFinalAmount());
+            System.out.printf("%-4d %-20s %-12s %-18s %.2f%n", index++, shortId, date, order.getStatus(), order.getFinalAmount());
         }
 
         System.out.println("============================================================");
@@ -528,8 +524,7 @@ public class CustomerController {
 
     private void viewOrderHistory() {
 
-        List<Order> orders =
-                orderService.getOrdersByCustomer(loggedInCustomer.getId());
+        List<Order> orders = orderService.getOrdersByCustomer(loggedInCustomer.getId());
 
         displayOrderHistorySummary(orders);
 
@@ -549,17 +544,12 @@ public class CustomerController {
         System.out.println("============================================================");
 
         System.out.println("Order ID   : " + order.getId());
-        System.out.println("Date       : " +
-                order.getCreatedAt().format(
-                        java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
-                )
-        );
+        System.out.println("Date       : " + order.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")));
         System.out.println("Status     : " + order.getStatus());
 
         System.out.println("------------------------------------------------------------");
 
-        System.out.printf("%-28s %-7s %-9s %s%n",
-                "Item Name", "Qty", "Price", "Total");
+        System.out.printf("%-28s %-7s %-9s %s%n", "Item Name", "Qty", "Price", "Total");
 
         System.out.println("------------------------------------------------------------");
 
@@ -570,11 +560,7 @@ public class CustomerController {
             double subtotal = item.subtotal();
             total += subtotal;
 
-            System.out.printf("%-28s %-7d %-9.2f %.2f%n",
-                    item.getItem().getName(),
-                    item.getQuantity(),
-                    item.getItem().getPrice(),
-                    subtotal);
+            System.out.printf("%-28s %-7d %-9.2f %.2f%n", item.item().getName(), item.quantity(), item.item().getPrice(), subtotal);
         }
 
         System.out.println("------------------------------------------------------------");

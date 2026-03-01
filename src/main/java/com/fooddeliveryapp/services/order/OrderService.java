@@ -1,11 +1,19 @@
 package com.fooddeliveryapp.services.order;
 
+import com.fooddeliveryapp.exception.EntityNotFoundException;
+import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.cart.Cart;
-import com.fooddeliveryapp.models.order.*;
+import com.fooddeliveryapp.models.notification.EmailNotification;
+import com.fooddeliveryapp.models.notification.NotificationType;
+import com.fooddeliveryapp.models.notification.PersistentNotification;
+import com.fooddeliveryapp.models.notification.PhoneNotification;
+import com.fooddeliveryapp.models.order.Order;
+import com.fooddeliveryapp.models.order.OrderItem;
+import com.fooddeliveryapp.models.order.OrderStatus;
+import com.fooddeliveryapp.models.order.PaymentMode;
 import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
-import com.fooddeliveryapp.models.notification.*;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
 import com.fooddeliveryapp.services.discount.DiscountService;
@@ -23,11 +31,7 @@ public class OrderService {
     private final Queue<Order> waitingOrders = new LinkedList<>();
     private final NotificationService notificationService;
 
-    public OrderService(Repository<Order> orderRepository,
-                        DiscountService discountService,
-                        Repository<User> userRepository,
-                        DeliveryAssignmentStrategy deliveryStrategy,
-                        NotificationService notificationService) {
+    public OrderService(Repository<Order> orderRepository, DiscountService discountService, Repository<User> userRepository, DeliveryAssignmentStrategy deliveryStrategy, NotificationService notificationService) {
 
         this.orderRepository = orderRepository;
         this.discountService = discountService;
@@ -48,19 +52,16 @@ public class OrderService {
      * Scans the order repository for every order whose status is
      * CONFIRMED_BY_ADMIN (i.e., admin confirmed but no partner was available
      * at that time) and re-enqueues them in chronological order.
-     *
+     * <p>
      * This MUST be called once at construction time — after the repository
      * field is set — so the queue survives application restarts.
      */
     private void rehydrateWaitingQueue() {
-        orderRepository.findAll().stream()
-                .filter(o -> o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN)
-                .sorted(Comparator.comparing(Order::getCreatedAt))   // oldest first → fair FIFO
+        orderRepository.findAll().stream().filter(o -> o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN).sorted(Comparator.comparing(Order::getCreatedAt))   // oldest first → fair FIFO
                 .forEach(waitingOrders::add);
 
         if (!waitingOrders.isEmpty()) {
-            System.out.println("[OrderService] Rehydrated " + waitingOrders.size()
-                    + " order(s) into the waiting queue from previous session.");
+            System.out.println("[OrderService] Rehydrated " + waitingOrders.size() + " order(s) into the waiting queue from previous session.");
         }
     }
 
@@ -68,31 +69,42 @@ public class OrderService {
     // Checkout
     // ----------------------------
 
-    public Order checkoutCart(Cart cart,
-                              PaymentStrategy paymentStrategy,
-                              PaymentMode mode) {
+    public Order checkoutCart(Cart cart, PaymentStrategy paymentStrategy, PaymentMode mode) {
 
         if (cart.getItems().isEmpty()) {
-            throw new IllegalStateException("Cart is empty");
+            throw new InvalidOperationException("Cannot place order with empty cart.");
         }
 
         Customer customer = cart.getCustomer();
+        if(customer == null) {
+            throw new InvalidOperationException("Customer cannot be null.");
+        }
+
 
         Order order = new Order(customer.getId(), customer.getName());
+        if(order == null){
+            throw new InvalidOperationException("Cannot place order with empty order.");
+        }
+
         attachObservers(order);
 
         cart.getItems().forEach(cartItem -> {
 
-            OrderItem orderItem = new OrderItem(
-                    cartItem.getItem(),
-                    cartItem.getQuantity()
-            );
+            OrderItem orderItem = new OrderItem(cartItem.getItem(), cartItem.getQuantity());
 
             order.addItem(orderItem);
         });
 
         double total = order.getTotalAmount();
+        if(total <= 0){
+            throw new InvalidOperationException("Cannot place order with negative total amount.");
+        }
+
         double discount = discountService.calculateDiscount(total);
+        if(discount < 0){
+            throw new InvalidOperationException("Cannot place order with negative discount.");
+        }
+
         order.applyDiscount(discount);
 
         paymentStrategy.pay(order.getTotalAmount());
@@ -112,6 +124,9 @@ public class OrderService {
     public void confirmOrder(String orderId) {
 
         Order order = findOrder(orderId);
+        if(order == null) {
+            throw new InvalidOperationException("Cannot find order with id " + orderId);
+        }
 
         if (order.getStatus() != OrderStatus.PAID) {
             throw new IllegalStateException("Only PAID orders can be confirmed.");
@@ -126,11 +141,7 @@ public class OrderService {
         order.confirmByAdmin();
 
         // 2️⃣ Get all delivery partners
-        List<DeliveryPartner> partners =
-                userRepository.findAll().stream()
-                        .filter(u -> u instanceof DeliveryPartner)
-                        .map(u -> (DeliveryPartner) u)
-                        .toList();
+        List<DeliveryPartner> partners = userRepository.findAll().stream().filter(u -> u instanceof DeliveryPartner).map(u -> (DeliveryPartner) u).toList();
 
         // 3️⃣ Case: No partners registered
         if (partners.isEmpty()) {
@@ -141,8 +152,7 @@ public class OrderService {
         }
 
         // 4️⃣ Try assigning partner
-        DeliveryPartner selected =
-                deliveryStrategy.assign(order, partners);
+        DeliveryPartner selected = deliveryStrategy.assign(order, partners);
 
         // 5️⃣ Case: All partners busy
         if (selected == null) {
@@ -166,14 +176,17 @@ public class OrderService {
         userRepository.save(selected);
         orderRepository.save(order);
     }
+
     // ----------------------------
     // Delivery Complete
     // ----------------------------
 
-    public void deliverOrder(String orderId,
-                             String partnerId) {
+    public void deliverOrder(String orderId, String partnerId) {
 
         Order order = findOrder(orderId);
+        if (order == null) {
+            throw new InvalidOperationException("Cannot find order with id " + orderId);
+        }
 
         if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY) {
             throw new IllegalStateException("Order is not out for delivery.");
@@ -188,8 +201,11 @@ public class OrderService {
         DeliveryPartner partner = userRepository.findById(partnerId)
                 .filter(u -> u instanceof DeliveryPartner)
                 .map(u -> (DeliveryPartner) u)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Delivery Partner not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Delivery Partner not found"));
+
+        if(partner == null) {
+            throw new InvalidOperationException("Cannot find partner with id " + partnerId);
+        }
 
         partner.setAvailable(true);
 
@@ -216,122 +232,116 @@ public class OrderService {
             }
 
             // Re-fetch from repository to get the latest persisted status.
-            // The in-memory queue holds a snapshot; the real source of truth
-            // is the repository (handles restarts and concurrent mutations).
             Order fresh = orderRepository.findById(next.getId()).orElse(null);
 
             if (fresh == null) {
                 // Order was deleted externally — skip it.
-                System.out.println("[OrderService] Queued order " + next.getId()
-                        + " no longer exists — skipping.");
+                System.out.println("[OrderService] Queued order " + next.getId() + " no longer exists — skipping.");
                 continue;
             }
 
             if (fresh.getStatus() != OrderStatus.CONFIRMED_BY_ADMIN) {
                 // Order was cancelled or already assigned by another path — skip it.
-                System.out.println("[OrderService] Queued order " + fresh.getId()
-                        + " has status " + fresh.getStatus() + " — skipping.");
+                System.out.println("[OrderService] Queued order " + fresh.getId() + " has status " + fresh.getStatus() + " — skipping.");
                 continue;
             }
 
             // Found a valid order — assign the partner and stop.
+            attachObservers(fresh);
+            fresh.addObserver(new PhoneNotification(partner.getPhone()));
+
             fresh.assignDeliveryPartner(partner.getId());
             partner.setAvailable(false);
 
             orderRepository.save(fresh);
             userRepository.save(partner);
 
-            System.out.println("[OrderService] Queued order auto-assigned: "
-                    + fresh.getId() + " → partner: " + partner.getName());
+            System.out.println("[OrderService] Queued order auto-assigned: " + fresh.getId() + " → partner: " + partner.getName());
             return;
         }
     }
 
     private void attachObservers(Order order) {
 
-        User user = userRepository.findById(order.getCustomerId())
-                .orElseThrow();
+        order.clearObservers();
+
+        User user = userRepository.findById(order.getCustomerId()).orElseThrow();
+
+        if(user == null){
+            throw new EntityNotFoundException("Cannot find user with id " + order.getCustomerId());
+        }
 
         if (user instanceof Customer customer) {
 
-            Set<NotificationType> prefs =
-                    customer.getNotificationPreferences();
+            Set<NotificationType> prefs = customer.getNotificationPreferences();
 
             if (prefs.contains(NotificationType.EMAIL)) {
-                order.addObserver(
-                        new EmailNotification(customer.getEmail()));
+                order.addObserver(new EmailNotification(customer.getEmail()));
             }
 
             if (prefs.contains(NotificationType.PHONE)) {
-                order.addObserver(
-                        new PhoneNotification(customer.getPhone()));
+                order.addObserver(new PhoneNotification(customer.getPhone()));
             }
 
             // Always persist in-app notification
-            order.addObserver(
-                    new PersistentNotification(notificationService));
+            order.addObserver(new PersistentNotification(notificationService));
         }
     }
-
-    // ----------------------------
-    // Reporting
-    // ----------------------------
 
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }
 
     public List<Order> getOrdersByCustomer(String customerId) {
-        return orderRepository.findAll().stream()
+        return orderRepository.findAll()
+                .stream()
                 .filter(o -> o.getCustomerId().equals(customerId))
-                .sorted(Comparator.comparing(Order::getCreatedAt).reversed())
+                .sorted(Comparator.comparing(Order::getCreatedAt)
+                        .reversed())
                 .toList();
     }
 
-    public List<Order> getOrdersByPartner(
-            String partnerId) {
+    public List<Order> getOrdersByPartner(String partnerId) {
 
         return orderRepository.findAll()
                 .stream()
-                .filter(o ->
-                        partnerId.equals(
-                                o.getDeliveryPartnerId()
-                        ))
+                .filter(o -> partnerId.equals(o.getDeliveryPartnerId()))
                 .toList();
     }
 
     public double calculateTotalRevenue() {
-        // Count only DELIVERED orders — these are the only orders where money
-        // was actually earned. Including PAID / CONFIRMED_BY_ADMIN / OUT_FOR_DELIVERY
-        // inflates revenue because those orders can still be cancelled.
-        return orderRepository.findAll().stream()
+        return orderRepository.findAll()
+                .stream()
                 .filter(o -> o.getStatus() == OrderStatus.DELIVERED)
-                .mapToDouble(Order::getFinalAmount)
-                .sum();
+                .mapToDouble(Order::getFinalAmount).sum();
     }
 
     public long getTotalOrders() {
         return orderRepository.findAll().size();
     }
 
-
     public void cancelOrderByAdmin(String orderId) {
 
         Order order = findOrder(orderId);
 
+        if(order == null){
+            throw new EntityNotFoundException("Cannot find order with id " + orderId);
+        }
         // Re-attach observers so the customer receives the cancellation notification.
         attachObservers(order);
-
         OrderStatus status = order.getStatus();
 
+
+        if(status == null){
+            throw new EntityNotFoundException("Cannot find order status with id " + orderId);
+        }
+
         if (status == OrderStatus.DELIVERED) {
-            throw new IllegalStateException(
-                    "Cannot cancel a delivered order.");
+            throw new IllegalStateException("Cannot cancel a delivered order.");
         }
 
         if (status == OrderStatus.CANCELLED) {
-            throw new IllegalStateException(
-                    "Order is already cancelled.");
+            throw new IllegalStateException("Order is already cancelled.");
         }
 
         if (status == OrderStatus.OUT_FOR_DELIVERY) {
@@ -342,11 +352,11 @@ public class OrderService {
                         .filter(u -> u instanceof DeliveryPartner)
                         .map(u -> (DeliveryPartner) u)
                         .ifPresent(p -> {
-                            p.setAvailable(true);
-                            userRepository.save(p);
-                            tryAssignWaitingOrdersToPartner(p);
+                    p.setAvailable(true);
+                    userRepository.save(p);
+                    tryAssignWaitingOrdersToPartner(p);
 
-                        });
+                });
             }
         }
         // order.cancel() internally fires notifyObservers("Order has been cancelled.")
@@ -357,7 +367,7 @@ public class OrderService {
     private Order findOrder(String id) {
 
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Order not found"));
 
         return order;
     }
@@ -367,7 +377,6 @@ public class OrderService {
         if (!partner.isAvailable()) {
             return;
         }
-
         assignNextFromQueue(partner);
     }
 }

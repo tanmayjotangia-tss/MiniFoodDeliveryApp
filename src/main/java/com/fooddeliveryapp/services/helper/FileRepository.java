@@ -4,12 +4,14 @@ import com.fooddeliveryapp.models.repository.Repository;
 
 import java.io.*;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class FileRepository<T> implements Repository<T> {
 
     private final String filePath;
-    private List<T> storage;
+    private final List<T> storage;
 
     public FileRepository(String filePath) {
         this.filePath = filePath;
@@ -32,8 +34,8 @@ public class FileRepository<T> implements Repository<T> {
     @Override
     public Optional<T> findById(String id) {
 
-        return storage.stream().
-                filter(entity -> extractId(entity)
+        return storage.stream()
+                .filter(entity -> extractId(entity)
                         .equals(id)).findFirst();
     }
 
@@ -45,8 +47,7 @@ public class FileRepository<T> implements Repository<T> {
     @Override
     public void delete(String id) {
 
-        storage.removeIf(entity -> extractId(entity)
-                .equals(id));
+        storage.removeIf(entity -> extractId(entity).equals(id));
         writeToFile();
     }
 

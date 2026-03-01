@@ -1,9 +1,11 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.models.repository.*;
-import com.fooddeliveryapp.models.users.*;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.order.Order;
+import com.fooddeliveryapp.models.repository.*;
+import com.fooddeliveryapp.models.users.Admin;
+import com.fooddeliveryapp.models.users.Role;
+import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
 import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
 import com.fooddeliveryapp.services.delivery.FirstAvailableDeliveryAssignment;
@@ -54,32 +56,27 @@ public class ApplicationController {
 
         DeliveryAssignmentStrategy deliveryStrategy = new FirstAvailableDeliveryAssignment();
 
-        NotificationService notificationService =
-                new NotificationService(userRepository);
+        NotificationService notificationService = new NotificationService(userRepository);
 
         //Services
         MenuService menuService = new MenuService(menuRepository);
 
-        FileDiscountRepository discountRepository =
-                new FileDiscountRepository("discount.dat");
+        FileDiscountRepository discountRepository = new FileDiscountRepository("discount.dat");
 
-        TieredPercentageDiscount tieredDiscount =
-                discountRepository.load();
+        TieredPercentageDiscount tieredDiscount = discountRepository.load();
 
-        this.discountService =
-                new DiscountService(tieredDiscount);
+        this.discountService = new DiscountService(tieredDiscount);
 
-        this.orderService = new OrderService(orderRepository, discountService, userRepository, deliveryStrategy,notificationService);
-        this.authService = new AuthService(userRepository,orderService);
+        this.orderService = new OrderService(orderRepository, discountService, userRepository, deliveryStrategy, notificationService);
+        this.authService = new AuthService(userRepository, orderService);
 
 
-        DeliveryPartnerService deliveryService =
-                new DeliveryPartnerService(userRepository, orderService);
+        DeliveryPartnerService deliveryService = new DeliveryPartnerService(userRepository, orderService);
 
         // Controllers
-        this.adminController = new AdminController(menuService, deliveryService, discountService, orderService, this.menu, authService, discountRepository,cartRepository);
+        this.adminController = new AdminController(menuService, deliveryService, discountService, orderService, this.menu, authService, discountRepository, cartRepository);
 
-        this.customerController = new CustomerController(orderService, this.menu, authService, cartRepository,discountService);
+        this.customerController = new CustomerController(orderService, this.menu, authService, cartRepository, discountService);
 
         this.deliveryPartnerController = new DeliveryPartnerController(orderService, deliveryService, authService);
 
@@ -88,7 +85,9 @@ public class ApplicationController {
 
     // Ensure only one admin exists
     private void initializeAdminIfNotExists() {
-        if (userRepository.findAll().stream().noneMatch(u -> u.getRole() == Role.ADMIN)) {
+        if (userRepository.findAll()
+                .stream()
+                .noneMatch(u -> u.getRole() == Role.ADMIN)) {
 
             User admin = new Admin("System Admin", "admin@restaurant.com", "9999999999", "Admin@123");
 

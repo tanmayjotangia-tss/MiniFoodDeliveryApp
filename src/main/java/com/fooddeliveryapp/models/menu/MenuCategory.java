@@ -19,15 +19,13 @@ public class MenuCategory extends MenuComponent {
 
         if (component instanceof MenuCategory category) {
             if (nameExists(category.getName(), MenuCategory.class)) {
-                throw new DuplicateEntityException(
-                        "Category already exists: " + category.getName());
+                throw new DuplicateEntityException("Category already exists: " + category.getName());
             }
         }
 
         if (component instanceof MenuItem item) {
             if (nameExists(item.getName(), MenuItem.class)) {
-                throw new DuplicateEntityException(
-                        "Item already exists: " + item.getName());
+                throw new DuplicateEntityException("Item already exists: " + item.getName());
             }
         }
 
@@ -46,15 +44,14 @@ public class MenuCategory extends MenuComponent {
             component.display(indent + "   ");
         }
     }
+
     public List<MenuComponent> getComponents() {
         return Collections.unmodifiableList(components);
     }
 
     private String normalize(String name) {
-        return name
-                .replaceAll("\\s+", "")   // remove all spaces
-                .toLowerCase()
-                .trim();
+        return name.replaceAll("\\s+", "")
+                .toLowerCase().trim();
     }
 
     private boolean nameExists(String newName, Class<?> type) {
@@ -64,8 +61,7 @@ public class MenuCategory extends MenuComponent {
         return components.stream()
                 .filter(type::isInstance)
                 .map(c -> type.cast(c))
-                .anyMatch(c -> normalize(
-                        ((MenuComponent) c).getName()
-                ).equals(normalized));
+                .anyMatch(c -> normalize(((MenuComponent) c)
+                        .getName()).equals(normalized));
     }
 }

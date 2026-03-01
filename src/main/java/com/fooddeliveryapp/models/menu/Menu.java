@@ -1,7 +1,6 @@
 package com.fooddeliveryapp.models.menu;
 
 import com.fooddeliveryapp.exception.DuplicateEntityException;
-import com.fooddeliveryapp.exception.EntityNotFoundException;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -36,8 +35,7 @@ public class Menu implements Serializable {
                 .stream()
                 .filter(c -> c instanceof MenuCategory)
                 .map(c -> (MenuCategory) c)
-                .anyMatch(c -> c.getName()
-                        .equalsIgnoreCase(category.getName()));
+                .anyMatch(c -> c.getName().equalsIgnoreCase(category.getName()));
 
         if (exists) throw new DuplicateEntityException("Category already exists: " + category.getName());
 
@@ -100,10 +98,8 @@ public class Menu implements Serializable {
     public void removeCategory(String categoryName) {
 
         MenuComponent category = rootCategory.getComponents()
-                .stream()
-                .filter(c -> c instanceof MenuCategory)
-                .filter(c -> c.getName()
-                        .equalsIgnoreCase(categoryName.trim()))
+                .stream().filter(c -> c instanceof MenuCategory)
+                .filter(c -> c.getName().equalsIgnoreCase(categoryName.trim()))
                 .findFirst().orElseThrow(() -> new RuntimeException("Category not found"));
 
         rootCategory.remove(category);
@@ -148,8 +144,7 @@ public class Menu implements Serializable {
         return indexedItems;
     }
 
-    private void displayCategoryFormatted(MenuComponent component,
-                                          List<MenuItem> indexedItems) {
+    private void displayCategoryFormatted(MenuComponent component, List<MenuItem> indexedItems) {
 
         if (component instanceof MenuCategory category) {
 
@@ -170,12 +165,7 @@ public class Menu implements Serializable {
 
             int index = indexedItems.size();
 
-            System.out.printf(
-                    "%-4d %-28s ₹%8.2f%n",
-                    index,
-                    item.getName(),
-                    item.getPrice()
-            );
+            System.out.printf("%-4d %-28s ₹%8.2f%n", index, item.getName(), item.getPrice());
         }
     }
 
@@ -188,9 +178,7 @@ public class Menu implements Serializable {
 
     private void printCenteredCategory(String name) {
 
-        String line = "--------------------------- " +
-                name.toUpperCase() +
-                " --------------------------";
+        String line = "--------------------------- " + name.toUpperCase() + " --------------------------";
 
         System.out.println(line);
     }
@@ -198,10 +186,7 @@ public class Menu implements Serializable {
     private void printColumnHeader() {
 
         System.out.println();
-        System.out.printf("%-4s %-28s %s%n",
-                "No",
-                "Item Name",
-                "Price");
+        System.out.printf("%-4s %-28s %s%n", "No", "Item Name", "Price");
 
         System.out.println("------------------------------------------------------------");
     }
@@ -218,11 +203,5 @@ public class Menu implements Serializable {
                 collectItems(child, items);
             }
         }
-    }
-
-    public void displayMenu() {
-        System.out.println("\n========== MENU ==========");
-        rootCategory.display("");
-        System.out.println("==========================\n");
     }
 }

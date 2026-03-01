@@ -1,5 +1,7 @@
 package com.fooddeliveryapp.services.notification;
 
+import com.fooddeliveryapp.exception.EntityNotFoundException;
+import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.User;
 
@@ -14,7 +16,7 @@ public class NotificationService {
     public void notifyUser(String userId, String message) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         user.addNotification(message);
 

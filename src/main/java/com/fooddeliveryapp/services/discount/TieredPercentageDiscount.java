@@ -1,7 +1,10 @@
 package com.fooddeliveryapp.services.discount;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 public class TieredPercentageDiscount implements DiscountStrategy, Serializable {
 
@@ -14,8 +17,7 @@ public class TieredPercentageDiscount implements DiscountStrategy, Serializable 
         if (threshold <= 0 || percentage <= 0)
             throw new IllegalArgumentException("Threshold and percentage must be positive.");
 
-        if (percentage > 100)
-            throw new IllegalArgumentException("Percentage cannot exceed 100.");
+        if (percentage > 100) throw new IllegalArgumentException("Percentage cannot exceed 100.");
 
         slabs.put(threshold, percentage);
     }

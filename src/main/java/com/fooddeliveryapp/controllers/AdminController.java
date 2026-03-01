@@ -1,5 +1,6 @@
 package com.fooddeliveryapp.controllers;
 
+import com.fooddeliveryapp.exception.DuplicateEntityException;
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;
@@ -31,10 +32,10 @@ public class AdminController {
     private final DiscountService discountService;
     private final OrderService orderService;
     private final Menu menu;
-    private Admin loggedInAdmin;
     private final AuthService authService;
     private final FileDiscountRepository discountRepository;
     private final CartRepository cartRepository;
+    private Admin loggedInAdmin;
 
     public AdminController(MenuService menuService, DeliveryPartnerService deliveryService, DiscountService discountService, OrderService orderService, Menu menu, AuthService authService, FileDiscountRepository discountRepository, CartRepository cartRepository) {
 
@@ -124,7 +125,6 @@ public class AdminController {
         return true;
     }
 
-
     //    Menu Management
     private void manageMenu() {
 
@@ -158,49 +158,50 @@ public class AdminController {
 
     private void displayMenu() {
 
-        List<MenuCategory> categories = menuService.getAllCategories();
+        try {
+            List<MenuCategory> categories = menuService.getAllCategories();
 
-        if (categories.isEmpty()) {
-            System.out.println("\nNo menu items available.\n");
-            return;
-        }
-
-        System.out.println("\n============================================================");
-        System.out.println("                           MENU");
-        System.out.println("============================================================");
-
-        for (MenuCategory category : categories) {
-
-            System.out.println("\n=> " + category.getName() + ":-");
-
-            // 🔹 Column Header (ONLY for items)
-            System.out.printf("   %-3s %-30s %10s%n", "", "Item Name", "Price");
-            System.out.println("   ---------------------------------------------------------");
-
-            List<MenuItem> items = category.getComponents()
-                    .stream()
-                    .filter(component -> component instanceof MenuItem)
-                    .map(component -> (MenuItem) component)
-                    .toList();
-
-            if (items.isEmpty()) {
-                System.out.println("   (No items available)");
-                continue;
+            if (categories.isEmpty()) {
+                System.out.println("\nNo menu items available.\n");
+                return;
             }
 
-            for (int i = 0; i < items.size(); i++) {
-                MenuItem item = items.get(i);
+            System.out.println("\n============================================================");
+            System.out.println("                           MENU");
+            System.out.println("============================================================");
 
-                System.out.printf("   %-3d %-30s ₹ %8.2f%n",
-                        i + 1,
-                        item.getName(),
-                        item.getPrice());
+            for (MenuCategory category : categories) {
+
+                System.out.println("\n=> " + category.getName() + ":-");
+
+                // 🔹 Column Header (ONLY for items)
+                System.out.printf("   %-3s %-30s %10s%n", "", "Item Name", "Price");
+                System.out.println("   ---------------------------------------------------------");
+
+                List<MenuItem> items = category.getComponents()
+                        .stream()
+                        .filter(component -> component instanceof MenuItem)
+                        .map(component -> (MenuItem) component)
+                        .toList();
+
+                if (items.isEmpty()) {
+                    System.out.println("   (No items available)");
+                    continue;
+                }
+
+                for (int i = 0; i < items.size(); i++) {
+                    MenuItem item = items.get(i);
+
+                    System.out.printf("   %-3d %-30s ₹ %8.2f%n", i + 1, item.getName(), item.getPrice());
+                }
+
+                System.out.println("------------------------------------------------------------");
             }
+            System.out.println("============================================================\n");
 
-            System.out.println("------------------------------------------------------------");
+        } catch (Exception e) {
+            System.out.println("\nNo menu items available. " + e.getMessage() + "\n");
         }
-
-        System.out.println("============================================================\n");
     }
 
     private List<MenuItem> displayMenuItemsWithIndex() {
@@ -216,10 +217,7 @@ public class AdminController {
 
         for (int i = 0; i < items.size(); i++) {
             MenuItem item = items.get(i);
-            System.out.printf("%d. %-25s ₹%8.2f%n",
-                    i + 1,
-                    item.getName(),
-                    item.getPrice());
+            System.out.printf("%d. %-25s ₹%8.2f%n", i + 1, item.getName(), item.getPrice());
         }
 
         return items;
@@ -297,9 +295,7 @@ public class AdminController {
         }
 
         try {
-            menuService.updateItem(menu,
-                    selected.getId(),
-                    newPrice);
+            menuService.updateItem(menu, selected.getId(), newPrice);
             System.out.println("Item updated successfully.");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -341,8 +337,7 @@ public class AdminController {
             List<MenuItem> itemsToRemove = selectedCategory.getComponents()
                     .stream()
                     .filter(c -> c instanceof MenuItem)
-                    .map(c -> (MenuItem) c)
-                    .toList();
+                    .map(c -> (MenuItem) c).toList();
 
             for (MenuItem item : itemsToRemove) {
                 cartRepository.removeItemFromAllCarts(item.getId());
@@ -355,30 +350,43 @@ public class AdminController {
             System.out.println(e.getMessage());
         }
     }
+
     private MenuCategory selectCategory() {
+        try {
+            List<MenuCategory> categories = menuService.getAllCategories();
 
-        List<MenuCategory> categories = menuService.getAllCategories();
+            if (categories.isEmpty()) {
+                System.out.println("No categories available.");
+                return null;
+            }
 
-        if (categories.isEmpty()) {
-            System.out.println("No categories available.");
+            System.out.println("--- SELECT CATEGORY ---");
+
+            for (int i = 0; i < categories.size(); i++) {
+                System.out.println((i + 1) + ". " + categories.get(i).getName());
+            }
+
+            while (true) {
+                int choice = InputUtil.readInt("Select category (0 to cancel): ");
+
+                if (choice == 0) {
+                    System.out.println("Cancelled.");
+                    return null;
+                }
+
+                if (choice > 0 && choice <= categories.size()) {
+                    return categories.get(choice - 1);
+                }
+
+                System.out.println("Invalid selection. Please try again.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Failed to retrieve categories: " + e.getMessage());
             return null;
         }
-
-        System.out.println("--- SELECT CATEGORY ---");
-
-        for (int i = 0; i < categories.size(); i++) {
-            System.out.println((i + 1) + ". " + categories.get(i).getName());
-        }
-
-        int choice = InputUtil.readInt("Select category (0 to cancel): ");
-
-        if (choice <= 0 || choice > categories.size()) {
-            System.out.println("Cancelled.");
-            return null;
-        }
-
-        return categories.get(choice - 1);
     }
+
 
 
     //    Delivery Management
@@ -417,7 +425,8 @@ public class AdminController {
         for (int i = 0; i < partners.size(); i++) {
             DeliveryPartner p = partners.get(i);
             System.out.println((i + 1) + ". " + p.getName() + " | ID: " + p.getId());
-        }        String id = InputUtil.readString("Enter partner ID: ");
+        }
+        String id = InputUtil.readString("Enter partner ID: ");
         double percentage = InputUtil.readDouble("Enter new incentive percentage: ");
         try {
             deliveryService.updateIncentivePercentage(id, percentage);
@@ -436,23 +445,13 @@ public class AdminController {
             return;
         }
 
-        DeliveryPartner selected = selectFromList(
-                partners,
-                p -> "Name: " + p.getName()
-                        + " | Available: " + p.isAvailable()
-                        + " | Basic Pay: ₹" + p.getBasicPay()
-        );
+        DeliveryPartner selected = selectFromList(partners, p -> "Name: " + p.getName() + " | Available: " + p.isAvailable() + " | Basic Pay: ₹" + p.getBasicPay());
 
         if (selected == null) return;
 
-        boolean hasActiveOrders = orderService
-                .getOrdersByPartner(selected.getId())
+        boolean hasActiveOrders = orderService.getOrdersByPartner(selected.getId())
                 .stream()
-                .anyMatch(o ->
-                        o.getStatus() == OrderStatus.OUT_FOR_DELIVERY
-                                || o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN
-                                || o.getStatus() == OrderStatus.PAID
-                );
+                .anyMatch(o -> o.getStatus() == OrderStatus.OUT_FOR_DELIVERY || o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN || o.getStatus() == OrderStatus.PAID);
 
         if (hasActiveOrders) {
             System.out.println("Cannot remove partner — they have active deliveries in progress.");
@@ -483,12 +482,9 @@ public class AdminController {
             return;
         }
 
-        DeliveryPartner selected = selectFromList(
-                partners,
-                p -> "Name: " + p.getName() + " | Basic Pay: ₹" + p.getBasicPay()
-        );
+        DeliveryPartner selected = selectFromList(partners, p -> "Name: " + p.getName() + " | Basic Pay: ₹" + p.getBasicPay());
 
-        if(selected==null) return;
+        if (selected == null) return;
 
         double pay = InputUtil.readDouble("Enter new basic pay: ");
 
@@ -545,12 +541,9 @@ public class AdminController {
         double percentage = InputUtil.readDouble("Enter discount percentage: ");
 
         try {
-            discountService.getTieredDiscount()
-                    .addSlab(threshold, percentage);
+            discountService.getTieredDiscount().addSlab(threshold, percentage);
 
-            discountRepository.save(
-                    discountService.getTieredDiscount()
-            );
+            discountRepository.save(discountService.getTieredDiscount());
 
             System.out.println("Discount slab added successfully.");
         } catch (Exception e) {
@@ -560,8 +553,7 @@ public class AdminController {
 
     private void removeDiscountSlab() {
 
-        Map<Double, Double> slabs =
-                discountService.getTieredDiscount().getSlabs();
+        Map<Double, Double> slabs = discountService.getTieredDiscount().getSlabs();
 
         if (slabs.isEmpty()) {
             System.out.println("No discount slabs configured.");
@@ -569,13 +561,9 @@ public class AdminController {
         }
 
         System.out.println("Existing Slabs:");
-        slabs.forEach((threshold, percentage) ->
-                System.out.println("Above ₹" + threshold +
-                        " → " + percentage + "%")
-        );
+        slabs.forEach((threshold, percentage) -> System.out.println("Above ₹" + threshold + " → " + percentage + "%"));
 
-        double threshold =
-                InputUtil.readDouble("Enter threshold to remove: ");
+        double threshold = InputUtil.readDouble("Enter threshold to remove: ");
 
         if (!slabs.containsKey(threshold)) {
             System.out.println("No slab found for that threshold.");
@@ -593,8 +581,7 @@ public class AdminController {
 
     private void viewDiscountSlabs() {
 
-        Map<Double, Double> slabs =
-                discountService.getTieredDiscount().getSlabs();
+        Map<Double, Double> slabs = discountService.getTieredDiscount().getSlabs();
 
         final int WIDTH = 60;
 
@@ -608,8 +595,7 @@ public class AdminController {
             return;
         }
 
-        System.out.printf("%-5s %-20s %-20s%n",
-                "No", "Minimum Cart Amount", "Discount %");
+        System.out.printf("%-5s %-20s %-20s%n", "No", "Minimum Cart Amount", "Discount %");
 
         System.out.println("------------------------------------------------------------");
 
@@ -617,10 +603,7 @@ public class AdminController {
 
         for (Map.Entry<Double, Double> entry : slabs.entrySet()) {
 
-            System.out.printf("%-5d ₹%-19.2f %-20.2f%%%n",
-                    index++,
-                    entry.getKey(),
-                    entry.getValue());
+            System.out.printf("%-5d ₹%-19.2f %-20.2f%%%n", index++, entry.getKey(), entry.getValue());
         }
 
         System.out.println("============================================================");
@@ -630,7 +613,6 @@ public class AdminController {
         int padding = (width - text.length()) / 2;
         System.out.printf("%" + (padding + text.length()) + "s%n", text);
     }
-
 
     private void viewOrderHistory() {
 
@@ -645,10 +627,7 @@ public class AdminController {
             System.out.println("\n--- ORDER HISTORY ---");
 
             for (Order order : orders) {
-                System.out.println("Order ID: " + order.getId()
-                        + " | Customer: " + order.getCustomerName()
-                        + " | Final Amount: ₹" + order.getFinalAmount()
-                        + " | Status: " + order.getStatus());
+                System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomerName() + " | Final Amount: ₹" + order.getFinalAmount() + " | Status: " + order.getStatus());
             }
         } catch (Exception e) {
             System.out.println("Failed to load order history: " + e.getMessage());
@@ -728,7 +707,6 @@ public class AdminController {
                 }
 
                 case 3 -> {
-                    return;
                 }
 
                 default -> System.out.println("Invalid choice.");
@@ -768,13 +746,18 @@ public class AdminController {
         String email = InputUtil.readEmail("Enter Email: ");
         String password = InputUtil.readPassword("Enter Password: ");
 
-        User user = authService.login(email, password);
+        try {
+            User user = authService.login(email, password);
 
-        if (user instanceof Admin admin) {
-            loggedInAdmin = admin;
-            System.out.println("Admin logged in successfully.");
-        } else {
-            System.out.println("Invalid admin credentials.");
+            if (user instanceof Admin admin) {
+                loggedInAdmin = admin;
+                System.out.println("Admin logged in successfully.");
+            } else {
+                System.out.println("Invalid admin credentials.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Invalid admin credentials. " + e.getMessage());
         }
     }
 
