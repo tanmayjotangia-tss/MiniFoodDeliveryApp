@@ -40,13 +40,13 @@ public class Order implements Serializable {
     }
 
 
-//    Observer Methods
-public void addObserver(OrderObserver observer) {
-    if (observers == null) {
-        observers = new ArrayList<>();
+    //    Observer Methods
+    public void addObserver(OrderObserver observer) {
+        if (observers == null) {
+            observers = new ArrayList<>();
+        }
+        observers.add(observer);
     }
-    observers.add(observer);
-}
 
 
     public void notifyObservers(String message) {
@@ -57,7 +57,7 @@ public void addObserver(OrderObserver observer) {
         }
     }
 
-//    Order Lifecycle
+    //    Order Lifecycle
     public void addItem(OrderItem item) {
 
         if (status != OrderStatus.CREATED)
@@ -83,6 +83,11 @@ public void addObserver(OrderObserver observer) {
             throw new IllegalStateException("Only PAID orders allowed");
 
         status = OrderStatus.CONFIRMED_BY_ADMIN;
+
+        // Notification ownership: ALL order lifecycle events fire notifyObservers()
+        // here inside Order, never via direct notificationService calls in services.
+        notifyObservers("Your order #" + id.substring(0, 8)
+                + " has been confirmed and is being prepared.");
     }
 
     public void assignDeliveryPartner(String partnerId) {
@@ -154,7 +159,7 @@ public void addObserver(OrderObserver observer) {
         return getTotalAmount() - discount;
     }
 
-//    Serialization Safety
+    //    Serialization Safety
     private void readObject(java.io.ObjectInputStream in)
             throws Exception {
 

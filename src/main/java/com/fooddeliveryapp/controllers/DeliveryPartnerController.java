@@ -115,28 +115,41 @@ public class DeliveryPartnerController {
     }
 
 
-//    Assigned Orders
+    //    Assigned Orders
     private void viewOrders() {
 
-        List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId()).stream().filter(o -> o.getStatus() == OrderStatus.ASSIGNED || o.getStatus() == OrderStatus.OUT_FOR_DELIVERY).toList();
+        try {
+            List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId())
+                    .stream()
+                    .filter(o -> o.getStatus() == OrderStatus.OUT_FOR_DELIVERY)
+                    .toList();
 
-        if (orders.isEmpty()) {
-            System.out.println("No assigned orders.");
-            return;
-        }
+            if (orders.isEmpty()) {
+                System.out.println("No assigned orders.");
+                return;
+            }
 
-        System.out.println("\nAssigned Orders:");
+            System.out.println("\nAssigned Orders:");
 
-        for (int i = 0; i < orders.size(); i++) {
-            Order o = orders.get(i);
-            System.out.println((i + 1) + ". ID: " + o.getId() + " | Customer: " + o.getCustomerName() + " | Status: " + o.getStatus() + " | Amount: ₹" + o.getTotalAmount());
+            for (int i = 0; i < orders.size(); i++) {
+                Order o = orders.get(i);
+                System.out.println((i + 1) + ". ID: " + o.getId()
+                        + " | Customer: " + o.getCustomerName()
+                        + " | Status: " + o.getStatus()
+                        + " | Amount: ₹" + o.getTotalAmount());
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to load orders: " + e.getMessage());
         }
     }
 
-//    Mark Delivered
+    //    Mark Delivered
     private void deliverOrder() {
 
-        List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId()).stream().filter(o -> o.getStatus() == OrderStatus.ASSIGNED || o.getStatus() == OrderStatus.OUT_FOR_DELIVERY).toList();
+        List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId())
+                .stream()
+                .filter(o -> o.getStatus() == OrderStatus.OUT_FOR_DELIVERY)
+                .toList();
 
         if (orders.isEmpty()) {
             System.out.println("No orders ready.");
@@ -146,42 +159,57 @@ public class DeliveryPartnerController {
         Order selected = selectOrder(orders);
         if (selected == null) return;
 
-        orderService.deliverOrder(selected.getId(), loggedInPartner.getId());
-
-        System.out.println("Order delivered successfully.");
+        try {
+            orderService.deliverOrder(selected.getId(), loggedInPartner.getId());
+            System.out.println("Order delivered successfully.");
+        } catch (Exception e) {
+            System.out.println("Failed to mark order as delivered: " + e.getMessage());
+        }
     }
 
-//    Delivered History
+    //    Delivered History
     private void viewDeliveryHistory() {
 
-        List<Order> delivered = orderService.getOrdersByPartner(loggedInPartner.getId()).stream().filter(o -> o.getStatus() == OrderStatus.DELIVERED).toList();
+        try {
+            List<Order> delivered = orderService.getOrdersByPartner(loggedInPartner.getId())
+                    .stream()
+                    .filter(o -> o.getStatus() == OrderStatus.DELIVERED)
+                    .toList();
 
-        if (delivered.isEmpty()) {
-            System.out.println("No delivered orders yet.");
-            return;
-        }
+            if (delivered.isEmpty()) {
+                System.out.println("No delivered orders yet.");
+                return;
+            }
 
-        System.out.println("\n=== DELIVERY HISTORY ===");
+            System.out.println("\n=== DELIVERY HISTORY ===");
 
-        for (int i = 0; i < delivered.size(); i++) {
-            Order o = delivered.get(i);
-            System.out.println((i + 1) + ". ID: " + o.getId() + " | Customer: " + o.getCustomerName() + " | Amount: ₹" + o.getTotalAmount());
+            for (int i = 0; i < delivered.size(); i++) {
+                Order o = delivered.get(i);
+                System.out.println((i + 1) + ". ID: " + o.getId()
+                        + " | Customer: " + o.getCustomerName()
+                        + " | Amount: ₹" + o.getTotalAmount());
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to load delivery history: " + e.getMessage());
         }
     }
 
     private void viewEarning() {
-        double totalEarnings =
-                partnerService.calculateEarnings(loggedInPartner.getId());
+        try {
+            double totalEarnings = partnerService.calculateEarnings(loggedInPartner.getId());
 
-        System.out.println("\n=== EARNINGS SUMMARY ===");
-        System.out.println("Basic Pay: ₹" + loggedInPartner.getBasicPay());
-        System.out.println("Incentive Percentage: "
-                + loggedInPartner.getIncentivePercentage() + "%");
-        System.out.println("----------------------------");
-        System.out.println("Total Earnings: ₹" + totalEarnings);
+            System.out.println("\n=== EARNINGS SUMMARY ===");
+            System.out.println("Basic Pay: ₹" + loggedInPartner.getBasicPay());
+            System.out.println("Incentive Percentage: "
+                    + loggedInPartner.getIncentivePercentage() + "%");
+            System.out.println("----------------------------");
+            System.out.println("Total Earnings: ₹" + totalEarnings);
+        } catch (Exception e) {
+            System.out.println("Failed to load earnings: " + e.getMessage());
+        }
     }
 
-//    Select Order - No manual UUID
+    //    Select Order - No manual UUID
     private Order selectOrder(List<Order> orders) {
 
         System.out.println("\nSelect Order:");
@@ -225,12 +253,16 @@ public class DeliveryPartnerController {
         String phone = InputUtil.readPhoneNumber("Enter Phone: ");
         String password = InputUtil.readPassword("Enter Password: ");
 
-        boolean success = authService.registerDeliveryPartner(name, email, phone, password);
+        try {
+            boolean success = authService.registerDeliveryPartner(name, email, phone, password);
 
-        if (success) {
-            System.out.println("Registration successful!");
-        } else {
-            System.out.println("Email already exists.");
+            if (success) {
+                System.out.println("Registration successful!");
+            } else {
+                System.out.println("Email already exists.");
+            }
+        } catch (Exception e) {
+            System.out.println("Registration failed: " + e.getMessage());
         }
     }
 

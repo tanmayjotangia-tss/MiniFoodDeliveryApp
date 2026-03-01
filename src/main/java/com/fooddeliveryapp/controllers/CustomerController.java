@@ -104,7 +104,7 @@ public class CustomerController {
 
             case 3 -> viewCart();
 
-            case 4 -> cart.clearCart();
+            case 4 -> clearCart();
 
             case 5 -> checkout();
 
@@ -429,37 +429,63 @@ public class CustomerController {
     }
 
     private void addItem() {
-        addItemToCart(cart);
-        cartRepository.save(cart);
+        try {
+            addItemToCart(cart);
+            cartRepository.save(cart);
+        } catch (Exception e) {
+            System.out.println("Failed to add item: " + e.getMessage());
+        }
     }
 
     private void removeItem() {
-        removeItemFromCart(cart);
-        cartRepository.save(cart);
+        try {
+            removeItemFromCart(cart);
+            cartRepository.save(cart);
+        } catch (Exception e) {
+            System.out.println("Failed to update cart: " + e.getMessage());
+        }
+    }
+
+    private void clearCart() {
+        try {
+            cart.clearCart();
+            cartRepository.save(cart);
+            System.out.println("Cart cleared.");
+        } catch (Exception e) {
+            System.out.println("Failed to clear cart: " + e.getMessage());
+        }
     }
 
     private void viewCart() {
 
-        cart = cartRepository
-                .findByCustomerId(loggedInCustomer.getId())
-                .orElse(cart);
+        try {
+            cart = cartRepository
+                    .findByCustomerId(loggedInCustomer.getId())
+                    .orElse(cart);
 
-        if (cart.getItems().isEmpty()) {
-            System.out.println("Cart is empty.");
-            return;
+            if (cart.getItems().isEmpty()) {
+                System.out.println("Cart is empty.");
+                return;
+            }
+
+            double total = cart.calculateTotal();
+            double discount = discountService.calculateDiscount(total);
+
+            cart.printCart(discount);
+        } catch (Exception e) {
+            System.out.println("Failed to display cart: " + e.getMessage());
         }
-
-        double total = cart.calculateTotal();
-        double discount = discountService.calculateDiscount(total);
-
-        cart.printCart(discount);
     }
 
     private void checkout() {
-        checkout(cart);
-        cart.clearCart();
-        cartRepository.save(cart);
-
+        try {
+            checkout(cart);
+            // Only clear and save if checkout succeeded (no exception above).
+            cart.clearCart();
+            cartRepository.save(cart);
+        } catch (Exception e) {
+            System.out.println("Checkout failed: " + e.getMessage());
+        }
     }
 
     private void displayOrderHistorySummary(List<Order> orders) {

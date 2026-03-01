@@ -66,7 +66,7 @@ public class Menu implements Serializable {
             }
         }
 
-        throw new EntityNotFoundException("Menu item not found");
+        return null;
     }
 
     public void updateItem(String itemId, double newPrice) {

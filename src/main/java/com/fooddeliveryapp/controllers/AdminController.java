@@ -283,7 +283,18 @@ public class AdminController {
 
         MenuItem selected = items.get(choice - 1);
 
-        double newPrice = InputUtil.readDouble("Enter new price: ");
+        double newPrice;
+
+        while (true) {
+            newPrice = InputUtil.readDouble("Enter new price: ");
+
+            if (newPrice <= 0) {
+                System.out.println("Price must be greater than 0. Please try again.");
+                continue;
+            }
+
+            break;
+        }
 
         try {
             menuService.updateItem(menu,
@@ -411,8 +422,8 @@ public class AdminController {
         try {
             deliveryService.updateIncentivePercentage(id, percentage);
             System.out.println("Incentive Percentage updated.");
-        } catch (EntityNotFoundException e) {
-            System.out.println("Partner not found.");
+        } catch (Exception e) {
+            System.out.println("Failed to update incentive: " + e.getMessage());
         }
     }
 
@@ -444,9 +455,9 @@ public class AdminController {
                 );
 
         if (hasActiveOrders) {
-            throw new IllegalStateException(
-                    "Cannot remove partner. Pending deliveries exist."
-            );
+            System.out.println("Cannot remove partner — they have active deliveries in progress.");
+            System.out.println("Wait until all their orders are delivered or cancelled first.");
+            return;
         }
 
         String confirm = InputUtil.readString("Are you sure? (yes/no): ");
@@ -456,9 +467,12 @@ public class AdminController {
             return;
         }
 
-        deliveryService.removePartner(selected.getId());
-
-        System.out.println("Partner removed successfully.");
+        try {
+            deliveryService.removePartner(selected.getId());
+            System.out.println("Partner removed successfully.");
+        } catch (Exception e) {
+            System.out.println("Failed to remove partner: " + e.getMessage());
+        }
     }
 
     private void updatePartnerPay() {
@@ -481,8 +495,8 @@ public class AdminController {
         try {
             deliveryService.updateBasicPay(selected.getId(), pay);
             System.out.println("Basic pay updated.");
-        } catch (EntityNotFoundException e) {
-            System.out.println("Partner not found.");
+        } catch (Exception e) {
+            System.out.println("Failed to update basic pay: " + e.getMessage());
         }
     }
 
@@ -568,14 +582,13 @@ public class AdminController {
             return;
         }
 
-        discountService.getTieredDiscount()
-                .removeSlab(threshold);
-
-        discountRepository.save(
-                discountService.getTieredDiscount()
-        );
-
-        System.out.println("Slab removed successfully.");
+        try {
+            discountService.getTieredDiscount().removeSlab(threshold);
+            discountRepository.save(discountService.getTieredDiscount());
+            System.out.println("Slab removed successfully.");
+        } catch (Exception e) {
+            System.out.println("Failed to remove slab: " + e.getMessage());
+        }
     }
 
     private void viewDiscountSlabs() {
@@ -621,30 +634,40 @@ public class AdminController {
 
     private void viewOrderHistory() {
 
-        List<Order> orders = orderService.getAllOrders();
+        try {
+            List<Order> orders = orderService.getAllOrders();
 
-        if(orders.isEmpty()) {
-            System.out.println("No delivery orders present.");
-            return;
-        }
+            if (orders.isEmpty()) {
+                System.out.println("No delivery orders present.");
+                return;
+            }
 
-        System.out.println("\n--- ORDER HISTORY ---");
+            System.out.println("\n--- ORDER HISTORY ---");
 
-        for (Order order : orders) {
-            System.out.println("Order ID: " + order.getId() + " | Customer: " + order.getCustomerName() + " | Final Amount: ₹" + order.getFinalAmount() + " | Status: " + order.getStatus());
+            for (Order order : orders) {
+                System.out.println("Order ID: " + order.getId()
+                        + " | Customer: " + order.getCustomerName()
+                        + " | Final Amount: ₹" + order.getFinalAmount()
+                        + " | Status: " + order.getStatus());
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to load order history: " + e.getMessage());
         }
     }
 
     private void showRevenueSummary() {
 
-        double revenue = orderService.calculateTotalRevenue();
+        try {
+            double revenue = orderService.calculateTotalRevenue();
+            long totalOrders = orderService.getTotalOrders();
 
-        long totalOrders = orderService.getTotalOrders();
-
-        System.out.println("\n====== REVENUE SUMMARY ======");
-        System.out.println("Total Orders : " + totalOrders);
-        System.out.println("Total Revenue: ₹" + revenue);
-        System.out.println("=============================");
+            System.out.println("\n====== REVENUE SUMMARY ======");
+            System.out.println("Total Orders : " + totalOrders);
+            System.out.println("Total Revenue: ₹" + revenue);
+            System.out.println("=============================");
+        } catch (Exception e) {
+            System.out.println("Failed to load revenue data: " + e.getMessage());
+        }
     }
 
     private void manageOrders() {
@@ -681,39 +704,39 @@ public class AdminController {
     }
 
     private void manageSingleOrder(Order order) {
-            System.out.println("\nManaging Order ID: " + order.getId());
-            System.out.println("Current Status: " + order.getStatus());
+        System.out.println("\nManaging Order ID: " + order.getId());
+        System.out.println("Current Status: " + order.getStatus());
 
-            System.out.println("1. Order ready to delivery");
-            System.out.println("2. Cancel Order");
-            System.out.println("3. Back");
+        System.out.println("1. Order ready to delivery");
+        System.out.println("2. Cancel Order");
+        System.out.println("3. Back");
 
-            int choice = InputUtil.readInt("Enter choice: ");
+        int choice = InputUtil.readInt("Enter choice: ");
 
-            try {
+        try {
 
-                switch (choice) {
+            switch (choice) {
 
-                    case 1 -> {
-                        orderService.confirmOrder(order.getId());
-                        System.out.println("Order Confirmed.");
-                    }
-
-                    case 2 -> {
-                        orderService.cancelOrderByAdmin(order.getId());
-                        System.out.println("Order Cancelled.");
-                    }
-
-                    case 3 -> {
-                        return;
-                    }
-
-                    default -> System.out.println("Invalid choice.");
+                case 1 -> {
+                    orderService.confirmOrder(order.getId());
+                    System.out.println("Order Confirmed.");
                 }
 
-            } catch (Exception e) {
-                System.out.println("Error: " + e.getMessage());
+                case 2 -> {
+                    orderService.cancelOrderByAdmin(order.getId());
+                    System.out.println("Order Cancelled.");
+                }
+
+                case 3 -> {
+                    return;
+                }
+
+                default -> System.out.println("Invalid choice.");
             }
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
     }
 
 

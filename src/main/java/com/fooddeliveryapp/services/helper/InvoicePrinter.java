@@ -16,7 +16,7 @@ public class InvoicePrinter {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
-        String dateTime = LocalDateTime.now().format(formatter);
+        String dateTime = order.getCreatedAt().format(formatter);
 
         printLine('=');
         centerText(RESTAURANT_NAME);
