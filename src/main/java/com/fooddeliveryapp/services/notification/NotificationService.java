@@ -1,7 +1,6 @@
 package com.fooddeliveryapp.services.notification;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
-import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.User;
 

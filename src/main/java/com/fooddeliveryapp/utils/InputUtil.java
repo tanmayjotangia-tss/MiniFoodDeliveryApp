@@ -175,7 +175,7 @@ public class InputUtil {
     }
 
     private static final Pattern UPI_PATTERN = Pattern.compile(
-            "^[a-zA-Z0-9]+([._-]?[a-zA-Z0-9]+)*@[a-zA-Z]{2,}$"
+            "^[a-zA-Z0-9]+([._-]?[a-zA-Z0-9]+)*@[a-zA-Z0-9]{2,}$"
     );
 
     public static String readUPI(String message) {

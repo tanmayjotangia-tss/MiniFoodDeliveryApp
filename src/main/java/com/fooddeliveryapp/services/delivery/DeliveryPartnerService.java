@@ -1,14 +1,13 @@
 package com.fooddeliveryapp.services.delivery;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
+import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
-import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.repository.UserRepository;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.services.order.OrderService;
 
 import java.util.List;
-import java.util.Optional;
 
 public class DeliveryPartnerService {
 
@@ -58,10 +57,6 @@ public class DeliveryPartnerService {
 
         DeliveryPartner partner = findById(id);
 
-        if(partner == null){
-            throw new EntityNotFoundException("Delivery partner not found with id: " + id);
-        }
-
         partner.updateIncentivePercentage(percentage);
 
         repository.save(partner);
@@ -71,15 +66,11 @@ public class DeliveryPartnerService {
 
         DeliveryPartner partner = findById(partnerId);
 
-        if(partner == null){
-            throw new EntityNotFoundException("Delivery partner not found with id: " + partnerId);
-        }
-
         double deliveredRevenue = orderService
                 .getOrdersByPartner(partnerId)
                 .stream()
                 .filter(o -> o.getStatus() == OrderStatus.DELIVERED)
-                .mapToDouble(o -> o.getTotalAmount())
+                .mapToDouble(Order::getFinalAmount)
                 .sum();
 
         double incentive = deliveredRevenue * (partner.getIncentivePercentage() / 100);

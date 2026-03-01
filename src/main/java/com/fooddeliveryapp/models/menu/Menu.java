@@ -124,13 +124,6 @@ public class Menu implements Serializable {
         return null;
     }
 
-    public List<MenuItem> getAllItems() {
-
-        List<MenuItem> items = new ArrayList<>();
-        collectItems(rootCategory, items);
-        return items;
-    }
-
     public List<MenuItem> displayIndexedMenu() {
 
         List<MenuItem> indexedItems = new ArrayList<>();
@@ -189,19 +182,5 @@ public class Menu implements Serializable {
         System.out.printf("%-4s %-28s %s%n", "No", "Item Name", "Price");
 
         System.out.println("------------------------------------------------------------");
-    }
-
-    private void collectItems(MenuComponent component, List<MenuItem> items) {
-
-        if (component instanceof MenuItem item) {
-            items.add(item);
-            return;
-        }
-
-        if (component instanceof MenuCategory category) {
-            for (MenuComponent child : category.getComponents()) {
-                collectItems(child, items);
-            }
-        }
     }
 }

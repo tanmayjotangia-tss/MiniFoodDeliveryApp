@@ -2,14 +2,15 @@ package com.fooddeliveryapp.models.users;
 
 import com.fooddeliveryapp.models.notification.AppNotification;
 
+import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public abstract class User implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     protected String id;

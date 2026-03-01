@@ -1,7 +1,6 @@
 package com.fooddeliveryapp.services.helper;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
-import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.notification.NotificationType;
 import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.Customer;
@@ -34,10 +33,6 @@ public class AuthService {
 
         User customer = new Customer(name, email, phone, address, password, preferences);
 
-        if(customer == null) {
-            throw new EntityNotFoundException("Customer not found");
-        }
-
         userRepository.save(customer);
         return true;
     }
@@ -53,11 +48,6 @@ public class AuthService {
         }
 
         DeliveryPartner partner = new DeliveryPartner(name, email, phone, password, 5000);
-
-        if(partner == null){
-            throw new EntityNotFoundException("DeliveryPartner not found");
-        }
-
 
         userRepository.save(partner);
         orderService.tryAssignWaitingOrdersToPartner(partner);

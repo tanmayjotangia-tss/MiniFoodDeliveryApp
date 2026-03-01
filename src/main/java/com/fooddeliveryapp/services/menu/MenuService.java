@@ -4,7 +4,6 @@ import com.fooddeliveryapp.exception.DuplicateEntityException;
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;
-import com.fooddeliveryapp.models.menu.MenuComponent;
 import com.fooddeliveryapp.models.menu.MenuItem;
 import com.fooddeliveryapp.models.repository.Repository;
 

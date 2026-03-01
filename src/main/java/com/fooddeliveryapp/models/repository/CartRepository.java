@@ -13,7 +13,5 @@ public interface CartRepository {
 
     List<Cart> findAll();
 
-    void delete(String cartId);
-
     public void removeItemFromAllCarts(String itemId);
 }

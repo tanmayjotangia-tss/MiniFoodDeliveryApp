@@ -42,13 +42,6 @@ public class FileCartRepository
     }
 
     @Override
-    public void delete(String cartId) {
-        carts.removeIf(c ->
-                c.getId().equals(cartId));
-        saveToFile(carts);
-    }
-
-    @Override
     public void removeItemFromAllCarts(String itemId) {
         for (Cart cart : carts) {
             cart.removeItemIfExists(itemId);

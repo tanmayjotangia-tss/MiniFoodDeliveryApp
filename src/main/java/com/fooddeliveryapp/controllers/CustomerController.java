@@ -1,6 +1,5 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
@@ -113,9 +112,7 @@ public class CustomerController {
 
             case 7 -> viewNotifications();
 
-            case 8 -> {
-                logout();
-            }
+            case 8 -> logout();
 
             case 9 -> {
                 return false;
@@ -303,8 +300,8 @@ public class CustomerController {
 
             case 2 -> {
                 try{
-                    System.out.println("Item added to cart.");
-
+                    cart.removeItem(selected.getItem().getId());
+                    System.out.println("Item removed from cart.");
                 }catch (InvalidOperationException e){
                     System.out.println(e.getMessage());
                 }

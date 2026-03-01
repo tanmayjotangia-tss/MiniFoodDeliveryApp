@@ -2,6 +2,7 @@ package com.fooddeliveryapp.models.order;
 
 import com.fooddeliveryapp.services.notification.OrderObserver;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 public class Order implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final String id;
@@ -152,7 +154,7 @@ public class Order implements Serializable {
     }
 
     public double getFinalAmount() {
-        return getTotalAmount() - discount;
+        return Math.max(0.0, getTotalAmount() - discount);
     }
 
     public LocalDateTime getCreatedAt() {

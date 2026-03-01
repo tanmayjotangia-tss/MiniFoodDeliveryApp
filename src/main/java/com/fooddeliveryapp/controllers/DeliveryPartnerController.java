@@ -1,6 +1,5 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
@@ -142,26 +141,27 @@ public class DeliveryPartnerController {
 
     //    Mark Delivered
     private void deliverOrder() {
-
-        List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId())
-                .stream()
-                .filter(o -> o.getStatus() == OrderStatus.OUT_FOR_DELIVERY).toList();
-
-        if (orders.isEmpty()) {
-            System.out.println("No orders ready.");
-            return;
-        }
-
-        Order selected = selectOrder(orders);
-        if (selected == null) return;
-
         try {
+            List<Order> orders = orderService.getOrdersByPartner(loggedInPartner.getId())
+                    .stream()
+                    .filter(o -> o.getStatus() == OrderStatus.OUT_FOR_DELIVERY)
+                    .toList();
+
+            if (orders.isEmpty()) {
+                System.out.println("No orders ready.");
+                return;
+            }
+
+            Order selected = selectOrder(orders);
+            if (selected == null) return;
+
             orderService.deliverOrder(selected.getId(), loggedInPartner.getId());
             System.out.println("Order delivered successfully.");
+
         } catch (InvalidOperationException e) {
             System.out.println("Failed to mark order as delivered: " + e.getMessage());
         } catch (Exception e) {
-            System.out.println("Failed to mark order as delivered: " + e.getMessage());
+            System.out.println("Unexpected error while delivering order: " + e.getMessage());
         }
     }
 

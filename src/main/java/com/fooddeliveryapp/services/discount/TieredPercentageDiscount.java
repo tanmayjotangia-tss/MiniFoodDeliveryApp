@@ -1,5 +1,6 @@
 package com.fooddeliveryapp.services.discount;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.TreeMap;
 
 public class TieredPercentageDiscount implements DiscountStrategy, Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final NavigableMap<Double, Double> slabs = new TreeMap<>();

@@ -1,6 +1,5 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.exception.DuplicateEntityException;
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.menu.Menu;
@@ -489,7 +488,16 @@ public class AdminController {
 
         if (selected == null) return;
 
-        double pay = InputUtil.readDouble("Enter new basic pay: ");
+        double pay;
+        while (true) {
+            pay = InputUtil.readDouble("Enter new basic pay: ");
+
+            if (pay > 0) {
+                break;
+            }
+
+            System.out.println("Basic pay must be greater than 0. Please try again.");
+        }
 
         try {
             deliveryService.updateBasicPay(selected.getId(), pay);
@@ -658,7 +666,8 @@ public class AdminController {
 
         List<Order> orders = orderService.getAllOrders()
                 .stream()
-                .filter(o -> o.getStatus() == OrderStatus.PAID)
+                .filter(o -> o.getStatus() == OrderStatus.PAID
+                || o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN)
                 .toList();
 
         if (orders.isEmpty()) {

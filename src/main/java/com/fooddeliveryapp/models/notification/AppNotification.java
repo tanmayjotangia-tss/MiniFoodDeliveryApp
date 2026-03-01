@@ -1,5 +1,6 @@
 package com.fooddeliveryapp.models.notification;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -7,6 +8,7 @@ import java.util.UUID;
 
 public class AppNotification implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final String id;
@@ -31,10 +33,6 @@ public class AppNotification implements Serializable {
 
     public LocalDateTime getTimestamp() {
         return timestamp;
-    }
-
-    public boolean isRead() {
-        return read;
     }
 
     public void markAsRead() {

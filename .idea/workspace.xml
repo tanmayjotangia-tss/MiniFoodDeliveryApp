@@ -8,9 +8,10 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/AdminController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/AdminController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/CustomerController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/CustomerController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/DeliveryPartnerController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/DeliveryPartnerController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/repository/AbstractFileRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/repository/AbstractFileRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/menu/MenuService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/menu/MenuService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/delivery/DeliveryPartnerService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/delivery/DeliveryPartnerService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/AuthService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/order/OrderService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/order/OrderService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/utils/InputUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/utils/InputUtil.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

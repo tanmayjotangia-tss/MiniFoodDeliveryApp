@@ -76,15 +76,8 @@ public class OrderService {
         }
 
         Customer customer = cart.getCustomer();
-        if(customer == null) {
-            throw new InvalidOperationException("Customer cannot be null.");
-        }
-
 
         Order order = new Order(customer.getId(), customer.getName());
-        if(order == null){
-            throw new InvalidOperationException("Cannot place order with empty order.");
-        }
 
         attachObservers(order);
 
@@ -107,7 +100,7 @@ public class OrderService {
 
         order.applyDiscount(discount);
 
-        paymentStrategy.pay(order.getTotalAmount());
+        paymentStrategy.pay(order.getFinalAmount());
 
         order.markPaid(mode);
         orderRepository.save(order);
@@ -184,9 +177,6 @@ public class OrderService {
     public void deliverOrder(String orderId, String partnerId) {
 
         Order order = findOrder(orderId);
-        if (order == null) {
-            throw new InvalidOperationException("Cannot find order with id " + orderId);
-        }
 
         if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY) {
             throw new IllegalStateException("Order is not out for delivery.");
@@ -196,17 +186,12 @@ public class OrderService {
             throw new IllegalStateException("This partner is not assigned to the order.");
         }
 
-        order.markDelivered();
-
         DeliveryPartner partner = userRepository.findById(partnerId)
                 .filter(u -> u instanceof DeliveryPartner)
                 .map(u -> (DeliveryPartner) u)
                 .orElseThrow(() -> new IllegalArgumentException("Delivery Partner not found"));
 
-        if(partner == null) {
-            throw new InvalidOperationException("Cannot find partner with id " + partnerId);
-        }
-
+        order.markDelivered();
         partner.setAvailable(true);
 
         userRepository.save(partner);
@@ -266,10 +251,6 @@ public class OrderService {
         order.clearObservers();
 
         User user = userRepository.findById(order.getCustomerId()).orElseThrow();
-
-        if(user == null){
-            throw new EntityNotFoundException("Cannot find user with id " + order.getCustomerId());
-        }
 
         if (user instanceof Customer customer) {
 
