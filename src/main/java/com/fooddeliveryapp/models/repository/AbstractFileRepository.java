@@ -18,7 +18,7 @@ public abstract class AbstractFileRepository<T> {
             oos.writeObject(data);
 
         } catch (IOException e) {
-            throw new RuntimeException("Error saving file", e);
+            System.err.println("⚠ Failed to save data to " + filePath);
         }
     }
 
@@ -36,7 +36,7 @@ public abstract class AbstractFileRepository<T> {
             return (List<T>) ois.readObject();
 
         } catch (IOException | ClassNotFoundException e) {
-            throw new RuntimeException("Error loading file", e);
-        }
+            System.err.println("⚠ File corrupted. Resetting: " + filePath);
+            return new ArrayList<>();        }
     }
 }

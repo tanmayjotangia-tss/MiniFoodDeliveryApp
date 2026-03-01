@@ -2,6 +2,7 @@ package com.fooddeliveryapp.controllers;
 
 import com.fooddeliveryapp.exception.DuplicateEntityException;
 import com.fooddeliveryapp.exception.EntityNotFoundException;
+import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;
 import com.fooddeliveryapp.models.menu.MenuComponent;
@@ -431,7 +432,9 @@ public class AdminController {
         try {
             deliveryService.updateIncentivePercentage(id, percentage);
             System.out.println("Incentive Percentage updated.");
-        } catch (Exception e) {
+        } catch (EntityNotFoundException e) {
+            System.out.println(e.getMessage());
+        }catch (Exception e) {
             System.out.println("Failed to update incentive: " + e.getMessage());
         }
     }
@@ -491,7 +494,9 @@ public class AdminController {
         try {
             deliveryService.updateBasicPay(selected.getId(), pay);
             System.out.println("Basic pay updated.");
-        } catch (Exception e) {
+        }catch(EntityNotFoundException e) {
+            System.out.println("Failed to update basic pay: " + e.getMessage());
+        }catch (Exception e) {
             System.out.println("Failed to update basic pay: " + e.getMessage());
         }
     }
@@ -697,8 +702,14 @@ public class AdminController {
             switch (choice) {
 
                 case 1 -> {
-                    orderService.confirmOrder(order.getId());
-                    System.out.println("Order Confirmed.");
+                    try{
+                        orderService.confirmOrder(order.getId());
+                        System.out.println("Order Confirmed.");
+                    }catch (InvalidOperationException e) {
+                        System.out.println("Invalid Order ID.");
+                    } catch (Exception e) {
+                        System.out.println("Invalid Order ID.");
+                    }
                 }
 
                 case 2 -> {

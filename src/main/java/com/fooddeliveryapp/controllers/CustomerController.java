@@ -236,8 +236,13 @@ public class CustomerController {
             System.out.println("Quantity must be greater than 0.");
         }
 
-        cart.addItem(selectedItem, quantity);
-        System.out.println("Item added to cart.");
+        try{
+            cart.addItem(selectedItem, quantity);
+            System.out.println("Item added to cart.");
+
+        }catch (InvalidOperationException e){
+            System.out.println(e.getMessage());
+        }
     }
 
     private void removeItemFromCart(Cart cart) {
@@ -289,7 +294,7 @@ public class CustomerController {
                         cart.decreaseItemQuantity(selected.getItem().getId(), qty);
                         System.out.println("Quantity updated.");
                         break;
-                    } catch (Exception e) {
+                    } catch (InvalidOperationException e) {
                         System.out.println(e.getMessage());
                         break;
                     }
@@ -297,8 +302,12 @@ public class CustomerController {
             }
 
             case 2 -> {
-                cart.removeItem(selected.getItem().getId());
-                System.out.println("Item removed.");
+                try{
+                    System.out.println("Item added to cart.");
+
+                }catch (InvalidOperationException e){
+                    System.out.println(e.getMessage());
+                }
             }
 
             default -> System.out.println("Invalid option.");
@@ -342,11 +351,17 @@ public class CustomerController {
                 return;
             }
         }
+        try{
 
-        Order order = orderService.checkoutCart(cart, strategy, mode);
+            Order order = orderService.checkoutCart(cart, strategy, mode);
 
-        System.out.println("Payment Successful.");
-        new InvoicePrinter().print(order);
+            System.out.println("Payment Successful.");
+            new InvoicePrinter().print(order);
+        }catch (InvalidOperationException e){
+            System.out.println(e.getMessage());
+        }catch (Exception e){
+            System.out.println("Unexpected payment error.");
+        }
     }
 
     private void handleLogin() {
@@ -422,7 +437,6 @@ public class CustomerController {
             } else {
                 System.out.println("Email already exists.");
             }
-
         } catch (Exception e) {
             System.out.println("Email already in use. " + e.getMessage());
         }

@@ -1,6 +1,7 @@
 package com.fooddeliveryapp.controllers;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
+import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
@@ -157,6 +158,8 @@ public class DeliveryPartnerController {
         try {
             orderService.deliverOrder(selected.getId(), loggedInPartner.getId());
             System.out.println("Order delivered successfully.");
+        } catch (InvalidOperationException e) {
+            System.out.println("Failed to mark order as delivered: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Failed to mark order as delivered: " + e.getMessage());
         }

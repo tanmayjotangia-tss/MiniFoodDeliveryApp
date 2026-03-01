@@ -6,35 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="cac37f73-ac18-4ad2-9118-a37ec3649fb3" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu.dat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/Potential update" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/AdminController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/AdminController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/ApplicationController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/ApplicationController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/CustomerController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/CustomerController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/DeliveryPartnerController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/DeliveryPartnerController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/cart/Cart.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/cart/Cart.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/menu/Menu.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/menu/Menu.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/menu/MenuCategory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/menu/MenuCategory.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/menu/MenuItem.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/menu/MenuItem.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/notification/AppNotification.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/notification/AppNotification.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/notification/OrderObserver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/notification/OrderObserver.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/notification/Subject.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/order/Order.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/order/Order.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/order/OrderItem.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/order/OrderItem.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/repository/AbstractFileRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/repository/AbstractFileRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/repository/FileCartRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/repository/FileCartRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/users/Admin.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/users/Admin.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/users/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/users/User.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/delivery/DeliveryPartnerService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/delivery/DeliveryPartnerService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/delivery/FirstAvailableDeliveryAssignment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/delivery/FirstAvailableDeliveryAssignment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/discount/TieredPercentageDiscount.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/discount/TieredPercentageDiscount.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/AuthService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/FileRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/FileRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/InvoicePrinter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/InvoicePrinter.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/menu/MenuService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/menu/MenuService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/notification/NotificationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/notification/NotificationService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/order/OrderService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/order/OrderService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/users.dat" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
