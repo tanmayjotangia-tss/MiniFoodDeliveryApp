@@ -44,18 +44,7 @@ public class OrderService {
         rehydrateWaitingQueue();
     }
 
-    // ----------------------------
-    // Queue Rehydration (startup)
-    // ----------------------------
-
-    /**
-     * Scans the order repository for every order whose status is
-     * CONFIRMED_BY_ADMIN (i.e., admin confirmed but no partner was available
-     * at that time) and re-enqueues them in chronological order.
-     * <p>
-     * This MUST be called once at construction time — after the repository
-     * field is set — so the queue survives application restarts.
-     */
+//    Scan order repo for every order with confirm bye admin status and re-enques it
     private void rehydrateWaitingQueue() {
         orderRepository.findAll().stream().filter(o -> o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN).sorted(Comparator.comparing(Order::getCreatedAt))   // oldest first → fair FIFO
                 .forEach(waitingOrders::add);
@@ -64,10 +53,6 @@ public class OrderService {
             System.out.println("[OrderService] Rehydrated " + waitingOrders.size() + " order(s) into the waiting queue from previous session.");
         }
     }
-
-    // ----------------------------
-    // Checkout
-    // ----------------------------
 
     public Order checkoutCart(Cart cart, PaymentStrategy paymentStrategy, PaymentMode mode) {
 
@@ -110,10 +95,6 @@ public class OrderService {
         return order;
     }
 
-    // ----------------------------
-    // Confirm & Assign
-    // ----------------------------
-
     public void confirmOrder(String orderId) {
 
         Order order = findOrder(orderId);
@@ -125,18 +106,16 @@ public class OrderService {
             throw new IllegalStateException("Only PAID orders can be confirmed.");
         }
 
-        // Re-attach observers: the `observers` list on Order is transient and is
-        // reset to an empty list when the order is deserialized from disk.
-        // Every code path that calls a lifecycle method must re-attach first.
+        // Re-attach observers
         attachObservers(order);
 
-        // 1️⃣ Confirm order — internally fires notifyObservers("Your order is confirmed...")
+        // Confirm order — internally fires notifyObservers("Your order is confirmed...")
         order.confirmByAdmin();
 
-        // 2️⃣ Get all delivery partners
+        // Get all delivery partners
         List<DeliveryPartner> partners = userRepository.findAll().stream().filter(u -> u instanceof DeliveryPartner).map(u -> (DeliveryPartner) u).toList();
 
-        // 3️⃣ Case: No partners registered
+        // Case: No partners registered
         if (partners.isEmpty()) {
             waitingOrders.add(order);
             System.out.println("No delivery partners registered. Order added to queue.");
@@ -144,10 +123,10 @@ public class OrderService {
             return;
         }
 
-        // 4️⃣ Try assigning partner
+        //  Try assigning partner
         DeliveryPartner selected = deliveryStrategy.assign(order, partners);
 
-        // 5️⃣ Case: All partners busy
+        //  Case: All partners busy
         if (selected == null) {
             waitingOrders.add(order);
             System.out.println("All partners busy. Order added to queue.");
@@ -155,13 +134,7 @@ public class OrderService {
             return;
         }
 
-        // 6️⃣ Add delivery partner as observer BEFORE calling assignDeliveryPartner(),
-        // so their phone notification fires through the same observer pipeline
-        // instead of bypassing it via a direct .update() call.
-        order.addObserver(new PhoneNotification(selected.getPhone()));
-
         // 7️⃣ Assign partner — internally fires notifyObservers("Your order is out for delivery.")
-        // Customer observers (email/phone/persistent) and the partner phone observer all receive it.
         order.assignDeliveryPartner(selected.getId());
         selected.setAvailable(false);
 
@@ -169,10 +142,6 @@ public class OrderService {
         userRepository.save(selected);
         orderRepository.save(order);
     }
-
-    // ----------------------------
-    // Delivery Complete
-    // ----------------------------
 
     public void deliverOrder(String orderId, String partnerId) {
 
@@ -200,14 +169,10 @@ public class OrderService {
         assignNextFromQueue(partner);
     }
 
-    // ----------------------------
-    // Queue Handling
-    // ----------------------------
-
     private void assignNextFromQueue(DeliveryPartner partner) {
 
-        // Drain the queue, skipping any orders that were cancelled
-        // while waiting (e.g., admin cancelled mid-queue).
+        // Drain the queue, skipping any orders that were cancled
+        // while waiting (e.g., admin cancled mid-queue).
         while (!waitingOrders.isEmpty()) {
 
             Order next = waitingOrders.poll();
@@ -226,15 +191,12 @@ public class OrderService {
             }
 
             if (fresh.getStatus() != OrderStatus.CONFIRMED_BY_ADMIN) {
-                // Order was cancelled or already assigned by another path — skip it.
+                // Order was cancled or already assigned by another path — skip it.
                 System.out.println("[OrderService] Queued order " + fresh.getId() + " has status " + fresh.getStatus() + " — skipping.");
                 continue;
             }
 
-            // Found a valid order — assign the partner and stop.
             attachObservers(fresh);
-            fresh.addObserver(new PhoneNotification(partner.getPhone()));
-
             fresh.assignDeliveryPartner(partner.getId());
             partner.setAvailable(false);
 
@@ -265,7 +227,21 @@ public class OrderService {
             }
 
             // Always persist in-app notification
-            order.addObserver(new PersistentNotification(notificationService));
+            order.addObserver( new PersistentNotification(notificationService, order.getCustomerId())
+            );        }
+
+        String partnerId = order.getDeliveryPartnerId();
+
+        if (partnerId != null) {
+
+            userRepository.findById(partnerId)
+                    .filter(u -> u instanceof DeliveryPartner)
+                    .map(u -> (DeliveryPartner) u)
+                    .ifPresent(partner ->
+                            order.addObserver(
+                                    new PersistentNotification(notificationService, partner.getId())
+                            )
+                    );
         }
     }
 
