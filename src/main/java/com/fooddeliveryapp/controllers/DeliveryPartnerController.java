@@ -1,5 +1,6 @@
 package com.fooddeliveryapp.controllers;
 
+import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
@@ -40,7 +41,22 @@ public class DeliveryPartnerController {
         }
     }
 
+    private boolean validateSession() {
+        try {
+            partnerService.findById(loggedInPartner.getId());
+            return true;
+        } catch (EntityNotFoundException e) {
+            System.out.println("Your account has been removed by admin.");
+            logout();
+            return false;
+        }
+    }
+
     private boolean showDashboardMenu() {
+
+        if (!validateSession()) {
+            return true;
+        }
 
         System.out.println("\n=== DELIVERY DASHBOARD ===");
         System.out.println("1. View Assigned Orders");

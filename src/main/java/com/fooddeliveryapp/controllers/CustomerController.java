@@ -1,15 +1,17 @@
 package com.fooddeliveryapp.controllers;
 
+import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuItem;
+import com.fooddeliveryapp.models.notification.AppNotification;
 import com.fooddeliveryapp.models.notification.NotificationType;
-import com.fooddeliveryapp.models.order.Order;
-import com.fooddeliveryapp.models.order.PaymentMode;
+import com.fooddeliveryapp.models.order.*;
 import com.fooddeliveryapp.models.repository.CartRepository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.User;
+import com.fooddeliveryapp.services.discount.DiscountService;
 import com.fooddeliveryapp.services.helper.AuthService;
 import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.services.payment.PaymentStrategy;
@@ -17,9 +19,8 @@ import com.fooddeliveryapp.services.payment.PaymentFactory;
 import com.fooddeliveryapp.services.helper.InvoicePrinter;
 import com.fooddeliveryapp.utils.InputUtil;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class CustomerController {
 
@@ -29,12 +30,14 @@ public class CustomerController {
     private Customer loggedInCustomer;
     private final AuthService authService;
     private final CartRepository cartRepository;
+    private final DiscountService discountService;
 
-    public CustomerController(OrderService orderService, Menu menu, AuthService authService, CartRepository cartRepository) {
+    public CustomerController(OrderService orderService, Menu menu, AuthService authService, CartRepository cartRepository, DiscountService discountService) {
         this.orderService = orderService;
         this.menu = menu;
         this.authService = authService;
         this.cartRepository = cartRepository;
+        this.discountService = discountService;
     }
 
     public void start() {
@@ -60,9 +63,9 @@ public class CustomerController {
 
         switch (choice) {
 
-            case 1 -> login();
+            case 1 -> handleLogin();
 
-            case 2 -> register();
+            case 2 -> handleRegister();
 
             case 3 -> {
                 return false;
@@ -76,13 +79,20 @@ public class CustomerController {
 
     private boolean showDashboardMenu() {
 
+        cart = cartRepository
+                .findByCustomerId(loggedInCustomer.getId())
+                .orElse(cart);
+
         System.out.println("\n====== CUSTOMER DASHBOARD ======");
         System.out.println("1. Add Item");
-        System.out.println("2. Remove Item");
+        System.out.println("2. Update Item Quantity");
         System.out.println("3. View Cart");
-        System.out.println("4. Checkout");
-        System.out.println("5. Logout");
-        System.out.println("6. Back to Main Menu");
+        System.out.println("4. Clear Cart");
+        System.out.println("5. Checkout");
+        System.out.println("6. View Orders");
+        System.out.println("7. View Notifications");
+        System.out.println("8. Logout");
+        System.out.println("9. Back to Main Menu");
 
         int choice = InputUtil.readInt("Enter choice: ");
 
@@ -94,13 +104,19 @@ public class CustomerController {
 
             case 3 -> viewCart();
 
-            case 4 -> checkout();
+            case 4 -> cart.clearCart();
 
-            case 5 -> {
+            case 5 -> checkout();
+
+            case 6 -> viewOrderHistory();
+
+            case 7 -> viewNotifications();
+
+            case 8 -> {
                 logout();
             }
 
-            case 6 -> {
+            case 9 -> {
                 return false;
             }
 
@@ -109,22 +125,103 @@ public class CustomerController {
         return true;
     }
 
+    private void viewNotifications() {
+
+        List<AppNotification> notifications =
+                new ArrayList<>(loggedInCustomer.getNotifications());
+
+        if (notifications.isEmpty()) {
+            System.out.println("No notifications.");
+            return;
+        }
+
+        // Sort newest first
+        notifications.sort(
+                Comparator.comparing(AppNotification::getTimestamp)
+                        .reversed()
+        );
+
+        int pageSize = 5;
+        int totalPages =
+                (int) Math.ceil((double) notifications.size() / pageSize);
+
+        int currentPage = 1;
+
+        while (true) {
+
+            int start = (currentPage - 1) * pageSize;
+            int end = Math.min(start + pageSize, notifications.size());
+
+            System.out.println("\n=== YOUR NOTIFICATIONS ===");
+            System.out.println("Page " + currentPage + " of " + totalPages);
+            System.out.println("--------------------------------------------------");
+
+            for (int i = start; i < end; i++) {
+                System.out.println(
+                        (i + 1) + ". " + notifications.get(i)
+                );
+            }
+
+            System.out.println("--------------------------------------------------");
+            System.out.println("1. Mark as Read");
+            System.out.println("2. Delete");
+            System.out.println("3. Next Page");
+            System.out.println("4. Previous Page");
+            System.out.println("5. Clear All");
+            System.out.println("6. Back");
+
+            int choice = InputUtil.readInt("Enter choice: ");
+
+            switch (choice) {
+
+                case 1 -> {
+                    int index = InputUtil.readInt("Select notification number: ");
+                    if (index >= 1 && index <= notifications.size()) {
+                        notifications.get(index - 1).markAsRead();
+                        System.out.println("Marked as read.");
+                    }
+                }
+
+                case 2 -> {
+                    int index = InputUtil.readInt("Select notification number: ");
+                    if (index >= 1 && index <= notifications.size()) {
+                        String id = notifications.get(index - 1).getId();
+                        loggedInCustomer.removeNotification(id);
+                        notifications.remove(index - 1);
+                        System.out.println("Deleted.");
+                    }
+                }
+
+                case 3 -> {
+                    if (currentPage < totalPages) currentPage++;
+                }
+
+                case 4 -> {
+                    if (currentPage > 1) currentPage--;
+                }
+
+                case 5 -> {
+                    loggedInCustomer.clearNotifications();
+                    System.out.println("All notifications cleared.");
+                    return;
+                }
+
+                case 6 -> {
+                    return;
+                }
+
+                default -> System.out.println("Invalid option.");
+            }
+        }
+    }
+
     private void addItemToCart(Cart cart) {
 
-        menu.displayMenu();
-
-        List<MenuItem> items = menu.getAllItems();
+        List<MenuItem> items = menu.displayIndexedMenu();
 
         if (items.isEmpty()) {
             System.out.println("No items available.");
             return;
-        }
-
-        System.out.println("\nSelect Item:");
-
-        for (int i = 0; i < items.size(); i++) {
-            MenuItem item = items.get(i);
-            System.out.println((i + 1) + ". " + item.getName() + " | ₹" + item.getPrice());
         }
 
         int selection = InputUtil.readInt("Enter choice (0 to cancel): ");
@@ -146,10 +243,6 @@ public class CustomerController {
         }
 
         cart.addItem(selectedItem, quantity);
-        System.out.println("Item added successfully.");
-
-        cart.addItem(selectedItem, quantity);
-
         System.out.println("Item added to cart.");
     }
 
@@ -166,7 +259,9 @@ public class CustomerController {
 
         for (int i = 0; i < items.size(); i++) {
             CartItem ci = items.get(i);
-            System.out.println((i + 1) + ". " + ci.getItem().getName() + " x" + ci.getQuantity());
+            System.out.println((i + 1) + ". "
+                    + ci.getItem().getName()
+                    + " x" + ci.getQuantity());
         }
 
         int selection = InputUtil.readInt("Enter choice (0 to cancel): ");
@@ -188,9 +283,28 @@ public class CustomerController {
         switch (option) {
 
             case 1 -> {
-                int qty = InputUtil.readInt("Enter quantity to decrease: ");
-                cart.decreaseItemQuantity(selected.getItem().getId(), qty);
-                System.out.println("Quantity updated.");
+
+                while (true) {
+
+                    int qty = InputUtil.readInt("Enter quantity to decrease: ");
+
+                    if (qty <= 0) {
+                        System.out.println("Quantity must be greater than 0.");
+                        continue;
+                    }
+
+                    try {
+                        cart.decreaseItemQuantity(
+                                selected.getItem().getId(),
+                                qty
+                        );
+                        System.out.println("Quantity updated.");
+                        break;
+                    } catch (InvalidOperationException e) {
+                        System.out.println(e.getMessage());
+                        break;
+                    }
+                }
             }
 
             case 2 -> {
@@ -210,26 +324,43 @@ public class CustomerController {
             return;
         }
 
-        PaymentMode mode = null;
-        while (mode == null) {
-            String input = InputUtil.readString("Payment mode (cash/upi): ");
-            try {
-                mode = PaymentMode.valueOf(input.trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                System.out.println("Invalid payment mode. Please enter 'cash' or 'upi'.");
+        System.out.println("\n====== SELECT PAYMENT MODE ======");
+        System.out.println("1. Cash");
+        System.out.println("2. UPI");
+
+        int choice = InputUtil.readInt("Enter choice: ");
+
+        PaymentMode mode;
+        PaymentStrategy strategy;
+
+        switch (choice) {
+
+            case 1 -> {
+                mode = PaymentMode.CASH;
+                strategy = PaymentFactory.getStrategy("CASH");
+            }
+
+            case 2 -> {
+                mode = PaymentMode.UPI;
+
+                String upiId = InputUtil.readUPI("Enter UPI ID: ");
+
+                strategy = PaymentFactory.getStrategy("UPI");
+            }
+
+            default -> {
+                System.out.println("Invalid payment option.");
+                return;
             }
         }
-
-        PaymentStrategy strategy = PaymentFactory.getStrategy(String.valueOf(mode));
 
         Order order = orderService.checkoutCart(cart, strategy, mode);
 
         System.out.println("Payment Successful.");
-
         new InvoicePrinter().print(order);
     }
 
-    private void login() {
+    private void handleLogin() {
 
         String email = InputUtil.readEmail("Enter Email: ");
         String password = InputUtil.readPassword("Enter Password: ");
@@ -249,14 +380,16 @@ public class CustomerController {
         }
     }
 
-    private void register() {
+    private void handleRegister() {
 
         String name = InputUtil.readValidName("Enter Name: ");
         String email = InputUtil.readEmail("Enter Email: ");
         String phone = InputUtil.readPhoneNumber("Enter Phone: ");
+        String address = InputUtil.readString("Enter Address: ");
         String password = InputUtil.readPassword("Enter Password: ");
 
         System.out.println("Notify via:");
+        System.out.println("0. App Only");
         System.out.println("1. Email");
         System.out.println("2. Phone");
         System.out.println("3. Both");
@@ -266,6 +399,9 @@ public class CustomerController {
         Set<NotificationType> preferences = new HashSet<>();
 
         switch (choice) {
+            case 0 -> {
+                // No external notification
+            }
             case 1 -> preferences.add(NotificationType.EMAIL);
             case 2 -> preferences.add(NotificationType.PHONE);
             case 3 -> {
@@ -278,7 +414,7 @@ public class CustomerController {
             }
         }
 
-        boolean success = authService.registerCustomer(name, email, phone, password, preferences);
+        boolean success = authService.registerCustomer(name, email, phone,address, password, preferences);
 
         if (success) {
             System.out.println("Registration successful!");
@@ -304,11 +440,19 @@ public class CustomerController {
 
     private void viewCart() {
 
+        cart = cartRepository
+                .findByCustomerId(loggedInCustomer.getId())
+                .orElse(cart);
+
         if (cart.getItems().isEmpty()) {
             System.out.println("Cart is empty.");
             return;
         }
-        cart.printCart();
+
+        double total = cart.calculateTotal();
+        double discount = discountService.calculateDiscount(total);
+
+        cart.printCart(discount);
     }
 
     private void checkout() {
@@ -316,5 +460,109 @@ public class CustomerController {
         cart.clearCart();
         cartRepository.save(cart);
 
+    }
+
+    private void displayOrderHistorySummary(List<Order> orders) {
+
+        final int WIDTH = 60;
+
+        System.out.println("============================================================");
+        System.out.printf("%30s%n", "ORDER HISTORY");
+        System.out.println("============================================================");
+
+        if (orders.isEmpty()) {
+            System.out.println("No orders found.");
+            System.out.println("============================================================");
+            return;
+        }
+
+        System.out.printf("%-4s %-20s %-12s %-18s %s%n",
+                "No", "Order ID", "Date", "Status", "Amount");
+
+        System.out.println("------------------------------------------------------------");
+
+        int index = 1;
+
+        for (Order order : orders) {
+
+            String shortId = order.getId().substring(0, 8);
+            String date = order.getCreatedAt()
+                    .format(DateTimeFormatter.ofPattern("dd-MM-yy"));
+
+            System.out.printf("%-4d %-20s %-12s %-18s %.2f%n",
+                    index++,
+                    shortId,
+                    date,
+                    order.getStatus(),
+                    order.getFinalAmount());
+        }
+
+        System.out.println("============================================================");
+    }
+
+    private void viewOrderHistory() {
+
+        List<Order> orders =
+                orderService.getOrdersByCustomer(loggedInCustomer.getId());
+
+        displayOrderHistorySummary(orders);
+
+        if (orders.isEmpty()) return;
+
+        int choice = InputUtil.readInt("Select order (0 to back): ");
+
+        if (choice <= 0 || choice > orders.size()) return;
+
+        displayOrderDetails(orders.get(choice - 1));
+    }
+
+    private void displayOrderDetails(Order order) {
+
+        System.out.println("============================================================");
+        System.out.printf("%30s%n", "ORDER DETAILS");
+        System.out.println("============================================================");
+
+        System.out.println("Order ID   : " + order.getId());
+        System.out.println("Date       : " +
+                order.getCreatedAt().format(
+                        java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
+                )
+        );
+        System.out.println("Status     : " + order.getStatus());
+
+        System.out.println("------------------------------------------------------------");
+
+        System.out.printf("%-28s %-7s %-9s %s%n",
+                "Item Name", "Qty", "Price", "Total");
+
+        System.out.println("------------------------------------------------------------");
+
+        double total = 0;
+
+        for (OrderItem item : order.getItems()) {
+
+            double subtotal = item.subtotal();
+            total += subtotal;
+
+            System.out.printf("%-28s %-7d %-9.2f %.2f%n",
+                    item.getItem().getName(),
+                    item.getQuantity(),
+                    item.getItem().getPrice(),
+                    subtotal);
+        }
+
+        System.out.println("------------------------------------------------------------");
+
+        double discount = total - order.getFinalAmount();
+
+        System.out.printf("%-45s ₹%10.2f%n", "Total Amount:", total);
+
+        if (discount > 0) {
+            System.out.printf("%-45s ₹%10.2f%n", "Discount:", discount);
+        }
+
+        System.out.printf("%-45s ₹%10.2f%n", "Final Amount:", order.getFinalAmount());
+
+        System.out.println("============================================================");
     }
 }

@@ -13,10 +13,11 @@ import java.util.Set;
 public class AuthService {
 
     private final Repository<User> userRepository;
-    private OrderService orderService;
+    private final OrderService orderService;
 
-    public AuthService(Repository<User> userRepository) {
+    public AuthService(Repository<User> userRepository, OrderService orderService) {
         this.userRepository = userRepository;
+        this.orderService = orderService;
     }
 
     // =========================
@@ -25,6 +26,7 @@ public class AuthService {
     public boolean registerCustomer(String name,
                                     String email,
                                     String phone,
+                                    String address,
                                     String password,
                                     Set<NotificationType> preferences) {
 
@@ -32,10 +34,15 @@ public class AuthService {
             return false;
         }
 
+        if(phoneExists(phone)) {
+            return false;
+        }
+
         User customer = new Customer(
                 name,
                 email,
                 phone,
+                address,
                 password,
                 preferences
         );
@@ -52,6 +59,10 @@ public class AuthService {
                                            String password) {
 
         if (emailExists(email)) {
+            return false;
+        }
+
+        if(phoneExists(phone)) {
             return false;
         }
 
@@ -91,5 +102,11 @@ public class AuthService {
                 .findFirst();
 
         return existingUser.isPresent();
+    }
+
+    private boolean phoneExists(String phone) {
+        return userRepository.findAll()
+                .stream()
+                .anyMatch(u -> u.getPhone().equals(phone));
     }
 }

@@ -3,6 +3,7 @@ package com.fooddeliveryapp.models.users;
 import com.fooddeliveryapp.models.notification.AppNotification;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,6 +62,19 @@ public abstract class User implements Serializable {
     }
 
     public List<AppNotification> getNotifications() {
-        return Collections.unmodifiableList(notifications);
+        return notifications;
+    }
+
+    public void removeNotification(String id) {
+        notifications.removeIf(n -> n.getId().equals(id));
+    }
+
+    public void clearNotifications() {
+        notifications.clear();
+    }
+
+    public void autoCleanOldNotifications(int days) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        notifications.removeIf(n -> n.getTimestamp().isBefore(cutoff));
     }
 }

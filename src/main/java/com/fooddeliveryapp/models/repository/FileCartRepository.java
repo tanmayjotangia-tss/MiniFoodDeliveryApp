@@ -49,4 +49,12 @@ public class FileCartRepository
                 c.getId().equals(cartId));
         saveToFile(carts);
     }
+
+    @Override
+    public void removeItemFromAllCarts(String itemId) {
+        for (Cart cart : carts) {
+            cart.removeItemIfExists(itemId);
+        }
+        saveToFile(carts);
+    }
 }

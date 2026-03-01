@@ -8,6 +8,7 @@ import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.services.order.OrderService;
 
 import java.util.List;
+import java.util.Optional;
 
 public class DeliveryPartnerService {
 
@@ -22,6 +23,12 @@ public class DeliveryPartnerService {
     public void removePartner(String id) {
         repository.delete(id);
     }
+
+//    public Optional<DeliveryPartner> findById(String id) {
+//        return repository.findById(id)
+//                .filter(u -> u instanceof DeliveryPartner)
+//                .map(u -> (DeliveryPartner) u);
+//    }
 
     public void updateBasicPay(String id, double newPay) {
 

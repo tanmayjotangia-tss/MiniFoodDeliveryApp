@@ -7,8 +7,8 @@ import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
 import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
 import com.fooddeliveryapp.services.delivery.FirstAvailableDeliveryAssignment;
-import com.fooddeliveryapp.services.discount.AmountDiscount;
 import com.fooddeliveryapp.services.discount.DiscountService;
+import com.fooddeliveryapp.services.discount.TieredPercentageDiscount;
 import com.fooddeliveryapp.services.helper.AuthService;
 import com.fooddeliveryapp.services.helper.FileRepository;
 import com.fooddeliveryapp.services.menu.MenuService;
@@ -24,6 +24,8 @@ public class ApplicationController {
     private final AdminController adminController;
     private final CustomerController customerController;
     private final DeliveryPartnerController deliveryPartnerController;
+    private final DiscountService discountService;
+    private final OrderService orderService;
 
     private final Menu menu;
 
@@ -39,7 +41,6 @@ public class ApplicationController {
         Repository<Order> orderRepository = new FileRepository<>("orders.dat");
 
         this.userRepository = new FileUserRepository("users.dat");
-        this.authService = new AuthService(userRepository);
         this.cartRepository = new FileCartRepository("carts.dat");
 
         // Load Menu
@@ -51,9 +52,6 @@ public class ApplicationController {
             this.menu = menus.get(0);
         }
 
-        // Default Discount
-        DiscountService discountService = new DiscountService(new AmountDiscount(500, 10));
-
         DeliveryAssignmentStrategy deliveryStrategy = new FirstAvailableDeliveryAssignment();
 
         NotificationService notificationService =
@@ -62,14 +60,26 @@ public class ApplicationController {
         //Services
         MenuService menuService = new MenuService(menuRepository);
 
-        OrderService orderService = new OrderService(orderRepository, discountService, userRepository, deliveryStrategy,notificationService);
+        FileDiscountRepository discountRepository =
+                new FileDiscountRepository("discount.dat");
+
+        TieredPercentageDiscount tieredDiscount =
+                discountRepository.load();
+
+        this.discountService =
+                new DiscountService(tieredDiscount);
+
+        this.orderService = new OrderService(orderRepository, discountService, userRepository, deliveryStrategy,notificationService);
+        this.authService = new AuthService(userRepository,orderService);
+
 
         DeliveryPartnerService deliveryService =
                 new DeliveryPartnerService(userRepository, orderService);
-        // Controllers
-        this.adminController = new AdminController(menuService, deliveryService, discountService, orderService, this.menu, authService);
 
-        this.customerController = new CustomerController(orderService, this.menu, authService, cartRepository);
+        // Controllers
+        this.adminController = new AdminController(menuService, deliveryService, discountService, orderService, this.menu, authService, discountRepository,cartRepository);
+
+        this.customerController = new CustomerController(orderService, this.menu, authService, cartRepository,discountService);
 
         this.deliveryPartnerController = new DeliveryPartnerController(orderService, deliveryService, authService);
 
@@ -80,10 +90,10 @@ public class ApplicationController {
     private void initializeAdminIfNotExists() {
         if (userRepository.findAll().stream().noneMatch(u -> u.getRole() == Role.ADMIN)) {
 
-            User admin = new Admin("System Admin", "admin@restaurant.com", "9999999999", "admin123");
+            User admin = new Admin("System Admin", "admin@restaurant.com", "9999999999", "Admin@123");
 
             userRepository.save(admin);
-            System.out.println("Default Admin created (email: admin@restaurant.com, password: admin123)");
+            System.out.println("Default Admin created (email: admin@restaurant.com, password: Admin@123)");
         }
     }
 

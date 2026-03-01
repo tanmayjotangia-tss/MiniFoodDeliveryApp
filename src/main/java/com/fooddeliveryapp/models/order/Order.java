@@ -1,13 +1,13 @@
 package com.fooddeliveryapp.models.order;
 
-import com.fooddeliveryapp.models.notification.Observer;
-import com.fooddeliveryapp.models.notification.Subject;
+import com.fooddeliveryapp.models.notification.*;
+import com.fooddeliveryapp.services.notification.OrderObserver;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class Order implements Serializable, Subject {
+public class Order implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -24,7 +24,7 @@ public class Order implements Serializable, Subject {
     private OrderStatus status;
     private double discount;
 
-    private transient List<Observer> observers = new ArrayList<>();
+    private transient List<OrderObserver> observers = new ArrayList<>();
 
     public Order(String customerId, String customerName) {
 
@@ -41,17 +41,19 @@ public class Order implements Serializable, Subject {
 
 
 //    Observer Methods
-    @Override
-    public void addObserver(Observer observer) {
-        if (observer != null) {
-            observers.add(observer);
-        }
+public void addObserver(OrderObserver observer) {
+    if (observers == null) {
+        observers = new ArrayList<>();
     }
+    observers.add(observer);
+}
 
-    @Override
+
     public void notifyObservers(String message) {
-        for (Observer observer : observers) {
-            observer.update(message);
+        if (observers != null) {
+            for (OrderObserver observer : observers) {
+                observer.update(this, message);
+            }
         }
     }
 
@@ -72,12 +74,7 @@ public class Order implements Serializable, Subject {
         this.status = OrderStatus.PAID;
         this.paymentMode = mode;
 
-        notifyObservers(
-                "New Order Placed by "
-                        + customerName
-                        + " | ₹"
-                        + getFinalAmount()
-        );
+        notifyObservers("Order placed successfully. Order ID: " + id);
     }
 
     public void confirmByAdmin() {
@@ -96,9 +93,7 @@ public class Order implements Serializable, Subject {
         this.deliveryPartnerId = partnerId;
         status = OrderStatus.OUT_FOR_DELIVERY;
 
-        notifyObservers(
-                "Your order is out for delivery."
-        );
+        notifyObservers("Your order is out for delivery.");
     }
 
     public void markDelivered() {
@@ -108,9 +103,8 @@ public class Order implements Serializable, Subject {
 
         status = OrderStatus.DELIVERED;
 
-        notifyObservers(
-                "Order delivered successfully."
-        );
+        notifyObservers("Your order has been delivered.");
+
     }
 
     public void applyDiscount(double discount) {
@@ -166,5 +160,9 @@ public class Order implements Serializable, Subject {
 
         in.defaultReadObject();
         observers = new ArrayList<>();
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 }

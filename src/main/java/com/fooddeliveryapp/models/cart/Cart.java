@@ -40,7 +40,6 @@ public class Cart implements Serializable {
         if (quantity <= 0) throw new InvalidOperationException("Invalid quantity");
 
         if (quantity >= cartItem.getQuantity()) {
-            // remove completely
             items.remove(cartItem);
         } else {
             cartItem.decreaseQuantity(quantity);
@@ -54,6 +53,10 @@ public class Cart implements Serializable {
         if (!removed) {
             throw new InvalidOperationException("Item not in cart");
         }
+    }
+
+    public void removeItemIfExists(String itemId) {
+        items.removeIf(ci -> ci.getItem().getId().equals(itemId));
     }
 
     public void clearCart() {
@@ -76,7 +79,8 @@ public class Cart implements Serializable {
         return id;
     }
 
-    public void printCart() {
+    public void printCart(double discount) {
+
         if (items.isEmpty()) {
             System.out.println("Cart is empty.");
             return;
@@ -90,12 +94,14 @@ public class Cart implements Serializable {
 
         System.out.printf("%-4s %-20s %-6s %-10s %-10s%n",
                 "No", "Item", "Qty", "Price", "Subtotal");
+
         printLine('-');
 
         int index = 1;
         double total = 0;
 
         for (CartItem ci : items) {
+
             String name = ci.getItem().getName();
             int qty = ci.getQuantity();
             double price = ci.getItem().getPrice();
@@ -113,11 +119,18 @@ public class Cart implements Serializable {
 
         printLine('-');
 
+        double finalAmount = total - discount;
+
         System.out.printf("%-42s ₹%10.2f%n", "Total Amount:", total);
+        if (discount > 0) {
+            System.out.printf("%-42s ₹%10.2f%n", "Discount:", discount);
+        }
+        printLine('-');
+
+        System.out.printf("%-42s ₹%10.2f%n", "Final Amount:", finalAmount);
 
         printLine('=');
     }
-
     private void printLine(char ch) {
         for (int i = 0; i < 60; i++) {
             System.out.print(ch);

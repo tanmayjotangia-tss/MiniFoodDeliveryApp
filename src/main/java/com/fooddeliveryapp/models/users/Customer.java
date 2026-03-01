@@ -7,10 +7,12 @@ import java.util.Set;
 
 public class Customer extends User implements Serializable {
     private Set<NotificationType> notificationPreferences;
+    private String address;
 
-    public Customer(String name, String email, String phone, String password, Set<NotificationType> notificationPreferences) {
+    public Customer(String name, String email, String phone,String address, String password, Set<NotificationType> notificationPreferences) {
 
         super(name, email, phone, password);
+        this.address = address;
         this.notificationPreferences = notificationPreferences;
     }
 

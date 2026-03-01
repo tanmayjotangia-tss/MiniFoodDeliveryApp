@@ -135,6 +135,77 @@ public class Menu implements Serializable {
         return items;
     }
 
+    public List<MenuItem> displayIndexedMenu() {
+
+        List<MenuItem> indexedItems = new ArrayList<>();
+
+        printHeader("MY RESTAURANT");
+
+        displayCategoryFormatted(rootCategory, indexedItems);
+
+        System.out.println("============================================================");
+
+        return indexedItems;
+    }
+
+    private void displayCategoryFormatted(MenuComponent component,
+                                          List<MenuItem> indexedItems) {
+
+        if (component instanceof MenuCategory category) {
+
+            if (!category.getName().equalsIgnoreCase("My Restaurant")) {
+
+                System.out.println();
+                printCenteredCategory(category.getName());
+                printColumnHeader();
+            }
+
+            for (MenuComponent child : category.getComponents()) {
+                displayCategoryFormatted(child, indexedItems);
+            }
+
+        } else if (component instanceof MenuItem item) {
+
+            indexedItems.add(item);
+
+            int index = indexedItems.size();
+
+            System.out.printf(
+                    "%-4d %-28s ₹%8.2f%n",
+                    index,
+                    item.getName(),
+                    item.getPrice()
+            );
+        }
+    }
+
+    private void printHeader(String title) {
+
+        System.out.println("============================================================");
+        System.out.printf("%30s%n", title);
+        System.out.println("============================================================\n");
+    }
+
+    private void printCenteredCategory(String name) {
+
+        String line = "--------------------------- " +
+                name.toUpperCase() +
+                " --------------------------";
+
+        System.out.println(line);
+    }
+
+    private void printColumnHeader() {
+
+        System.out.println();
+        System.out.printf("%-4s %-28s %s%n",
+                "No",
+                "Item Name",
+                "Price");
+
+        System.out.println("------------------------------------------------------------");
+    }
+
     private void collectItems(MenuComponent component, List<MenuItem> items) {
 
         if (component instanceof MenuItem item) {

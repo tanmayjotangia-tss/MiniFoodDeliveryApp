@@ -12,9 +12,7 @@ import com.fooddeliveryapp.services.discount.DiscountService;
 import com.fooddeliveryapp.services.notification.NotificationService;
 import com.fooddeliveryapp.services.payment.PaymentStrategy;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 public class OrderService {
 
@@ -52,6 +50,7 @@ public class OrderService {
         Customer customer = cart.getCustomer();
 
         Order order = new Order(customer.getId(), customer.getName());
+        attachObservers(order);
 
         cart.getItems().forEach(cartItem -> {
 
@@ -70,11 +69,6 @@ public class OrderService {
         paymentStrategy.pay(order.getTotalAmount());
 
         order.markPaid(mode);
-        notificationService.notifyUser(
-                customer.getId(),
-                "Order placed successfully. Order ID: " + order.getId()
-        );
-
         orderRepository.save(order);
 
         cart.clearCart();
@@ -90,13 +84,12 @@ public class OrderService {
 
         Order order = findOrder(orderId);
 
+        if (order.getStatus() != OrderStatus.PAID) {
+            throw new IllegalStateException("Only PAID orders can be confirmed.");
+        }
+
         // 1️⃣ Confirm order by admin
         order.confirmByAdmin();
-
-        notificationService.notifyUser(
-                order.getCustomerId(),
-                "Your order has been confirmed."
-        );
 
         // 2️⃣ Get all delivery partners
         List<DeliveryPartner> partners =
@@ -129,15 +122,9 @@ public class OrderService {
         order.assignDeliveryPartner(selected.getId());
         selected.setAvailable(false);
 
-        // 7️⃣ Notify delivery partner
-        notificationService.notifyUser(
-                selected.getId(),
-                "New order assigned. Order ID: " + order.getId()
-        );
-
         // Optional: Phone notification observer
-        order.addObserver(new PhoneNotification(selected.getPhone()));
-
+        new PhoneNotification(selected.getPhone())
+                .update(order, "New order assigned. Order ID: " + order.getId());
         // 8️⃣ Persist changes
         userRepository.save(selected);
         orderRepository.save(order);
@@ -160,10 +147,6 @@ public class OrderService {
         }
 
         order.markDelivered();
-        notificationService.notifyUser(
-                order.getCustomerId(),
-                "Your order has been delivered."
-        );
 
         DeliveryPartner partner = userRepository.findById(partnerId)
                 .filter(u -> u instanceof DeliveryPartner)
@@ -175,12 +158,6 @@ public class OrderService {
 
         userRepository.save(partner);
         orderRepository.save(order);
-
-        notificationService.notifyUser(
-                partner.getId(),
-                "Order delivered successfully. Order ID: " + order.getId()
-        );
-
 
         assignNextFromQueue(partner);
     }
@@ -215,18 +192,33 @@ public class OrderService {
         orderRepository.save(next);
         userRepository.save(partner);
 
-        // Notifications
-        notificationService.notifyUser(
-                partner.getId(),
-                "New order assigned. Order ID: " + next.getId()
-        );
-
-        notificationService.notifyUser(
-                next.getCustomerId(),
-                "Your order is out for delivery."
-        );
-
         System.out.println("Queued order auto-assigned: " + next.getId());
+    }
+
+    private void attachObservers(Order order) {
+
+        User user = userRepository.findById(order.getCustomerId())
+                .orElseThrow();
+
+        if (user instanceof Customer customer) {
+
+            Set<NotificationType> prefs =
+                    customer.getNotificationPreferences();
+
+            if (prefs.contains(NotificationType.EMAIL)) {
+                order.addObserver(
+                        new EmailNotification(customer.getEmail()));
+            }
+
+            if (prefs.contains(NotificationType.PHONE)) {
+                order.addObserver(
+                        new PhoneNotification(customer.getPhone()));
+            }
+
+            // Always persist in-app notification
+            order.addObserver(
+                    new PersistentNotification(notificationService));
+        }
     }
 
     private Customer findCustomerFromOrder(Order order) {
@@ -248,14 +240,11 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
-    public List<Order> getOrdersByCustomer(
-            String customerId) {
-
-        return orderRepository.findAll()
-                .stream()
-                .filter(o ->
-                        o.getCustomerId()
-                                .equals(customerId))
+    public List<Order> getOrdersByCustomer(String customerId) {
+        return orderRepository.findAll().stream()
+                .filter(o -> o.getCustomerId().equals(customerId))
+                .filter(o -> o.getStatus() != OrderStatus.CREATED)
+                .sorted(Comparator.comparing(Order::getCreatedAt).reversed())
                 .toList();
     }
 
@@ -298,10 +287,10 @@ public class OrderService {
 
     private Order findOrder(String id) {
 
-        return orderRepository.findById(id)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Order not found"));
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        return order;
     }
 
     public void tryAssignWaitingOrdersToPartner(DeliveryPartner partner) {

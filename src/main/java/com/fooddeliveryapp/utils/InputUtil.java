@@ -173,5 +173,29 @@ public class InputUtil {
         """);
         }
     }
+
+    private static final Pattern UPI_PATTERN = Pattern.compile(
+            "^[a-zA-Z0-9]+([._-]?[a-zA-Z0-9]+)*@[a-zA-Z]{2,}$"
+    );
+
+    public static String readUPI(String message) {
+        while (true) {
+            System.out.print(message);
+            String upi = scanner.nextLine().trim();
+
+            if (UPI_PATTERN.matcher(upi).matches()) {
+                return upi;
+            }
+
+            System.out.println("""
+        Invalid UPI ID.
+        UPI ID must:
+        - Be in format username@bank
+        - Contain only letters, numbers, dot (.), underscore (_), or hyphen (-)
+        - Not start or end with special characters
+        - Example: rahul123@oksbi
+        """);
+        }
+    }
 }
 

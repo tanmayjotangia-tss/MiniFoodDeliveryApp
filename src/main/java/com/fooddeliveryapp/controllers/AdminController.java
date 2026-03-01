@@ -6,14 +6,14 @@ import com.fooddeliveryapp.models.menu.MenuCategory;
 import com.fooddeliveryapp.models.menu.MenuComponent;
 import com.fooddeliveryapp.models.menu.MenuItem;
 import com.fooddeliveryapp.models.order.Order;
+import com.fooddeliveryapp.models.order.OrderStatus;
+import com.fooddeliveryapp.models.repository.CartRepository;
+import com.fooddeliveryapp.models.repository.FileDiscountRepository;
 import com.fooddeliveryapp.models.users.Admin;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
-import com.fooddeliveryapp.services.discount.AmountDiscount;
 import com.fooddeliveryapp.services.discount.DiscountService;
-import com.fooddeliveryapp.services.discount.FlatDiscount;
-import com.fooddeliveryapp.services.discount.PercentageDiscount;
 import com.fooddeliveryapp.services.helper.AuthService;
 import com.fooddeliveryapp.services.menu.MenuService;
 import com.fooddeliveryapp.services.order.OrderService;
@@ -21,6 +21,7 @@ import com.fooddeliveryapp.utils.InputUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class AdminController {
@@ -32,8 +33,10 @@ public class AdminController {
     private final Menu menu;
     private Admin loggedInAdmin;
     private final AuthService authService;
+    private final FileDiscountRepository discountRepository;
+    private final CartRepository cartRepository;
 
-    public AdminController(MenuService menuService, DeliveryPartnerService deliveryService, DiscountService discountService, OrderService orderService, Menu menu, AuthService authService) {
+    public AdminController(MenuService menuService, DeliveryPartnerService deliveryService, DiscountService discountService, OrderService orderService, Menu menu, AuthService authService, FileDiscountRepository discountRepository, CartRepository cartRepository) {
 
         this.menuService = menuService;
         this.deliveryService = deliveryService;
@@ -41,6 +44,8 @@ public class AdminController {
         this.orderService = orderService;
         this.menu = menu;
         this.authService = authService;
+        this.discountRepository = discountRepository;
+        this.cartRepository = cartRepository;
     }
 
     public void start() {
@@ -67,7 +72,7 @@ public class AdminController {
 
         switch (choice) {
 
-            case 1 -> login();
+            case 1 -> handleLogin();
 
             case 2 -> {
                 return false;
@@ -99,7 +104,7 @@ public class AdminController {
 
             case 2 -> manageDeliveryPartners();
 
-            case 3 -> manageDiscount();
+            case 3 -> configureDiscountMenu();
 
             case 4 -> manageOrders();
 
@@ -243,14 +248,22 @@ public class AdminController {
 
         String itemName = InputUtil.readString("Enter item name: ");
 
-        double price = InputUtil.readDouble("Enter item price: ");
+        while (true) {
+            double price = InputUtil.readDouble("Please enter the item price: ");
 
-        try {
-            MenuItem item = new MenuItem(itemName, price);
-            menuService.addItem(menu, selectedCategory, item);
-            System.out.println("Item added successfully.");
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+            if (price <= 0) {
+                System.out.println("Enter a valid price (must be > 0).");
+                continue;
+            }
+
+            try {
+                MenuItem item = new MenuItem(itemName, price);
+                menuService.addItem(menu, selectedCategory, item);
+                System.out.println("Item added successfully.");
+                break;
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
         }
     }
 
@@ -300,6 +313,8 @@ public class AdminController {
 
         try {
             menuService.removeItem(menu, selected.getId());
+            cartRepository.removeItemFromAllCarts(selected.getId());
+
             System.out.println("Item removed successfully.");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -308,22 +323,27 @@ public class AdminController {
 
     private void removeCategory() {
 
-        displayMenuStructure();
-
         MenuCategory selectedCategory = selectCategory();
-
-        if (selectedCategory == null) {
-            return;
-        }
+        if (selectedCategory == null) return;
 
         try {
+            List<MenuItem> itemsToRemove = selectedCategory.getComponents()
+                    .stream()
+                    .filter(c -> c instanceof MenuItem)
+                    .map(c -> (MenuItem) c)
+                    .toList();
+
+            for (MenuItem item : itemsToRemove) {
+                cartRepository.removeItemFromAllCarts(item.getId());
+            }
+
             menuService.removeCategory(menu, selectedCategory.getName());
             System.out.println("Category removed successfully.");
+
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
-
     private MenuCategory selectCategory() {
 
         List<MenuCategory> categories = menuService.getAllCategories();
@@ -376,8 +396,17 @@ public class AdminController {
     }
 
     private void updateIncentivePercentage() {
-        viewPartners();
-        String id = InputUtil.readString("Enter partner ID: ");
+        List<DeliveryPartner> partners = deliveryService.getAllPartners();
+
+        if (partners.isEmpty()) {
+            System.out.println("No delivery partners present.");
+            return;
+        }
+
+        for (int i = 0; i < partners.size(); i++) {
+            DeliveryPartner p = partners.get(i);
+            System.out.println((i + 1) + ". " + p.getName() + " | ID: " + p.getId());
+        }        String id = InputUtil.readString("Enter partner ID: ");
         double percentage = InputUtil.readDouble("Enter new incentive percentage: ");
         try {
             deliveryService.updateIncentivePercentage(id, percentage);
@@ -388,16 +417,47 @@ public class AdminController {
     }
 
     private void removePartner() {
+
         List<DeliveryPartner> partners = deliveryService.getAllPartners();
+
         if (partners.isEmpty()) {
             System.out.println("No delivery partners present.");
             return;
         }
-        DeliveryPartner selected = selectFromList(partners, p -> "Name: " + p.getName() + " | ID: " + p.getId());
+
+        DeliveryPartner selected = selectFromList(
+                partners,
+                p -> "Name: " + p.getName()
+                        + " | Available: " + p.isAvailable()
+                        + " | Basic Pay: ₹" + p.getBasicPay()
+        );
 
         if (selected == null) return;
 
+        boolean hasActiveOrders = orderService
+                .getOrdersByPartner(selected.getId())
+                .stream()
+                .anyMatch(o ->
+                        o.getStatus() == OrderStatus.OUT_FOR_DELIVERY
+                                || o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN
+                                || o.getStatus() == OrderStatus.PAID
+                );
+
+        if (hasActiveOrders) {
+            throw new IllegalStateException(
+                    "Cannot remove partner. Pending deliveries exist."
+            );
+        }
+
+        String confirm = InputUtil.readString("Are you sure? (yes/no): ");
+
+        if (!confirm.equalsIgnoreCase("yes")) {
+            System.out.println("Operation cancelled.");
+            return;
+        }
+
         deliveryService.removePartner(selected.getId());
+
         System.out.println("Partner removed successfully.");
     }
 
@@ -441,52 +501,132 @@ public class AdminController {
 
 
     //    Discount Management
-    private void manageDiscount() {
+    private void configureDiscountMenu() {
 
-        System.out.println("\n=== CONFIGURE DISCOUNT ===");
-        System.out.println("1. Percentage Discount");
-        System.out.println("2. Flat Discount");
-        System.out.println("3. Amount Based Discount");
-        System.out.println("4. Remove Discount");
+        boolean running = true;
 
-        int choice = InputUtil.readInt("Enter choice: ");
+        while (running) {
 
-        switch (choice) {
+            System.out.println("\n=== CONFIGURE DISCOUNT ===");
+            System.out.println("1. Add Discount Slab");
+            System.out.println("2. Remove Discount Slab");
+            System.out.println("3. View Discount Slabs");
+            System.out.println("4. Back");
 
-            case 1 -> {
-                double percent = InputUtil.readDouble("Enter percentage: ");
-                discountService.setDiscountStrategy(new PercentageDiscount(percent));
-                System.out.println("Percentage discount applied.");
+            int choice = InputUtil.readInt("Enter choice: ");
+
+            switch (choice) {
+                case 1 -> addDiscountSlab();
+                case 2 -> removeDiscountSlab();
+                case 3 -> viewDiscountSlabs();
+                case 4 -> running = false;
+                default -> System.out.println("Invalid option.");
             }
-
-            case 2 -> {
-                double amount = InputUtil.readDouble("Enter flat amount: ");
-                discountService.setDiscountStrategy(new FlatDiscount(amount));
-                System.out.println("Flat discount applied.");
-            }
-
-            case 3 -> {
-                double threshold = InputUtil.readDouble("Enter minimum amount: ");
-                double percent = InputUtil.readDouble("Enter percentage: ");
-
-                discountService.setDiscountStrategy(new AmountDiscount(threshold, percent));
-
-                System.out.println("Amount-based discount applied.");
-            }
-
-            case 4 -> {
-                discountService.setDiscountStrategy(null);
-                System.out.println("Discount removed.");
-            }
-
-            default -> System.out.println("Invalid option.");
         }
+    }
+
+    private void addDiscountSlab() {
+
+        double threshold = InputUtil.readDouble("Enter minimum cart amount: ");
+        double percentage = InputUtil.readDouble("Enter discount percentage: ");
+
+        try {
+            discountService.getTieredDiscount()
+                    .addSlab(threshold, percentage);
+
+            discountRepository.save(
+                    discountService.getTieredDiscount()
+            );
+
+            System.out.println("Discount slab added successfully.");
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private void removeDiscountSlab() {
+
+        Map<Double, Double> slabs =
+                discountService.getTieredDiscount().getSlabs();
+
+        if (slabs.isEmpty()) {
+            System.out.println("No discount slabs configured.");
+            return;
+        }
+
+        System.out.println("Existing Slabs:");
+        slabs.forEach((threshold, percentage) ->
+                System.out.println("Above ₹" + threshold +
+                        " → " + percentage + "%")
+        );
+
+        double threshold =
+                InputUtil.readDouble("Enter threshold to remove: ");
+
+        if (!slabs.containsKey(threshold)) {
+            System.out.println("No slab found for that threshold.");
+            return;
+        }
+
+        discountService.getTieredDiscount()
+                .removeSlab(threshold);
+
+        discountRepository.save(
+                discountService.getTieredDiscount()
+        );
+
+        System.out.println("Slab removed successfully.");
+    }
+
+    private void viewDiscountSlabs() {
+
+        Map<Double, Double> slabs =
+                discountService.getTieredDiscount().getSlabs();
+
+        final int WIDTH = 60;
+
+        System.out.println("============================================================");
+        centerText("ACTIVE DISCOUNT SLABS", WIDTH);
+        System.out.println("============================================================");
+
+        if (slabs.isEmpty()) {
+            System.out.println("No discount slabs configured.");
+            System.out.println("============================================================");
+            return;
+        }
+
+        System.out.printf("%-5s %-20s %-20s%n",
+                "No", "Minimum Cart Amount", "Discount %");
+
+        System.out.println("------------------------------------------------------------");
+
+        int index = 1;
+
+        for (Map.Entry<Double, Double> entry : slabs.entrySet()) {
+
+            System.out.printf("%-5d ₹%-19.2f %-20.2f%%%n",
+                    index++,
+                    entry.getKey(),
+                    entry.getValue());
+        }
+
+        System.out.println("============================================================");
+    }
+
+    private void centerText(String text, int width) {
+        int padding = (width - text.length()) / 2;
+        System.out.printf("%" + (padding + text.length()) + "s%n", text);
     }
 
 
     private void viewOrderHistory() {
 
         List<Order> orders = orderService.getAllOrders();
+
+        if(orders.isEmpty()) {
+            System.out.println("No delivery orders present.");
+            return;
+        }
 
         System.out.println("\n--- ORDER HISTORY ---");
 
@@ -507,22 +647,12 @@ public class AdminController {
         System.out.println("=============================");
     }
 
-    //    Helper Method
-    private void displayMenuStructure() {
-
-        System.out.println("\n--- CURRENT MENU ---");
-
-        for (MenuComponent component : menu.getRootCategory().getComponents()) {
-
-            if (component instanceof MenuCategory category) {
-                System.out.println("Category: " + category.getName());
-            }
-        }
-    }
-
     private void manageOrders() {
 
-        List<Order> orders = orderService.getAllOrders();
+        List<Order> orders = orderService.getAllOrders()
+                .stream()
+                .filter(o -> o.getStatus() == OrderStatus.PAID)
+                .toList();
 
         if (orders.isEmpty()) {
             System.out.println("No orders found.");
@@ -551,13 +681,10 @@ public class AdminController {
     }
 
     private void manageSingleOrder(Order order) {
-
-        while (true) {
-
             System.out.println("\nManaging Order ID: " + order.getId());
             System.out.println("Current Status: " + order.getStatus());
 
-            System.out.println("1. Confirm Order");
+            System.out.println("1. Order ready to delivery");
             System.out.println("2. Cancel Order");
             System.out.println("3. Back");
 
@@ -587,7 +714,6 @@ public class AdminController {
             } catch (Exception e) {
                 System.out.println("Error: " + e.getMessage());
             }
-        }
     }
 
 
@@ -614,10 +740,10 @@ public class AdminController {
         return list.get(choice - 1);
     }
 
-    private void login() {
+    private void handleLogin() {
 
-        String email = InputUtil.readString("Enter Email: ");
-        String password = InputUtil.readString("Enter Password: ");
+        String email = InputUtil.readEmail("Enter Email: ");
+        String password = InputUtil.readPassword("Enter Password: ");
 
         User user = authService.login(email, password);
 
