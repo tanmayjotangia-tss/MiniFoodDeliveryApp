@@ -136,6 +136,7 @@ public class OrderService {
 
         // 7️⃣ Assign partner — internally fires notifyObservers("Your order is out for delivery.")
         order.assignDeliveryPartner(selected.getId());
+        attachObservers(order);
         selected.setAvailable(false);
 
         // 8️⃣ Persist changes

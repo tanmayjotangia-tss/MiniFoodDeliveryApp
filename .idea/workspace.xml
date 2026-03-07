@@ -6,13 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="cac37f73-ac18-4ad2-9118-a37ec3649fb3" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/carts.dat" beforeDir="false" afterPath="$PROJECT_DIR$/carts.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu.dat" beforeDir="false" afterPath="$PROJECT_DIR$/menu.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orders.dat" beforeDir="false" afterPath="$PROJECT_DIR$/orders.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/notification/PersistentNotification.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/notification/PersistentNotification.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/users/DeliveryPartner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/models/users/DeliveryPartner.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/order/OrderService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/order/OrderService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/users.dat" beforeDir="false" afterPath="$PROJECT_DIR$/users.dat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,7 +43,7 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;v3&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;onboarding.tips.debug.path&quot;: &quot;C:/Users/Asus/IdeaProjects/MiniFoodOrderingApp/src/main/java/org/example/Main.java&quot;,
     &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
