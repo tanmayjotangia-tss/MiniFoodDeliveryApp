@@ -1,11 +1,8 @@
 package com.fooddeliveryapp.controllers;
 
 import com.fooddeliveryapp.exception.InvalidOperationException;
-import com.fooddeliveryapp.models.notification.AppNotification;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
-import com.fooddeliveryapp.models.repository.DBNotificationRepository;
-import com.fooddeliveryapp.models.repository.UserRepository;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
@@ -13,8 +10,6 @@ import com.fooddeliveryapp.services.helper.AuthService;
 import com.fooddeliveryapp.services.order.OrderService;
 import com.fooddeliveryapp.utils.InputUtil;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class DeliveryPartnerController {
@@ -22,20 +17,15 @@ public class DeliveryPartnerController {
     private final OrderService orderService;
     private final DeliveryPartnerService partnerService;
     private final AuthService authService;
-    private final UserRepository userRepository;
-    private final DBNotificationRepository notificationRepository;
 
     private DeliveryPartner loggedInPartner;
 
     public DeliveryPartnerController(OrderService orderService, DeliveryPartnerService partnerService,
-                                     AuthService authService, UserRepository userRepository,
-                                     DBNotificationRepository notificationRepository) {
+                                     AuthService authService) {
 
         this.orderService           = orderService;
         this.partnerService         = partnerService;
         this.authService            = authService;
-        this.userRepository         = userRepository;
-        this.notificationRepository = notificationRepository;
     }
 
     public void start() {
@@ -98,9 +88,9 @@ public class DeliveryPartnerController {
         System.out.println("2. Mark Order Delivered");
         System.out.println("3. View Order History");
         System.out.println("4. View Earning");
-        System.out.println("5. View Notifications");
-        System.out.println("6. Logout");
-        System.out.println("7. Back to Main Menu");
+//        System.out.println("5. View Notifications");
+        System.out.println("5. Logout");
+        System.out.println("6. Back to Main Menu");
 
         int choice = InputUtil.readInt("Enter choice: ");
 
@@ -114,11 +104,11 @@ public class DeliveryPartnerController {
 
             case 4 -> viewEarning();
 
-            case 5 -> viewNotifications();
+//            case 5 -> viewNotifications();
 
-            case 6 -> logout();
+            case 5 -> logout();
 
-            case 7 -> {
+            case 6 -> {
                 return false;
             }
 
@@ -217,101 +207,101 @@ public class DeliveryPartnerController {
         }
     }
 
-    private void viewNotifications() {
-
-        // Re-fetch the partner from DB to get notifications that arrived
-        // during this session (e.g. order-assigned events written via
-        // NotificationService while the partner was on another screen).
-        try {
-            loggedInPartner = partnerService.findById(loggedInPartner.getId());
-        } catch (Exception e) {
-            System.out.println("Could not refresh notifications: " + e.getMessage());
-        }
-
-        List<AppNotification> notifications = new ArrayList<>(loggedInPartner.getNotifications());
-
-        if (notifications.isEmpty()) {
-            System.out.println("No notifications.");
-            return;
-        }
-
-        // Sort newest first
-        notifications.sort(Comparator.comparing(AppNotification::getTimestamp).reversed());
-
-        int pageSize = 5;
-        int totalPages = (int) Math.ceil((double) notifications.size() / pageSize);
-
-        int currentPage = 1;
-
-        while (true) {
-
-            int start = (currentPage - 1) * pageSize;
-            int end = Math.min(start + pageSize, notifications.size());
-
-            System.out.println("\n=== YOUR NOTIFICATIONS ===");
-            System.out.println("Page " + currentPage + " of " + totalPages);
-            System.out.println("--------------------------------------------------");
-
-            for (int i = start; i < end; i++) {
-                System.out.println((i + 1) + ". " + notifications.get(i));
-            }
-
-            System.out.println("--------------------------------------------------");
-            System.out.println("1. Mark as Read");
-            System.out.println("2. Delete");
-            System.out.println("3. Next Page");
-            System.out.println("4. Previous Page");
-            System.out.println("5. Clear All");
-            System.out.println("6. Back");
-
-            int choice = InputUtil.readInt("Enter choice: ");
-
-            switch (choice) {
-
-                case 1 -> {
-                    int index = InputUtil.readInt("Select notification number: ");
-                    if (index >= 1 && index <= notifications.size()) {
-                        AppNotification n = notifications.get(index - 1);
-                        n.markAsRead();
-                        notificationRepository.markAsRead(n.getId());
-                        System.out.println("Marked as read.");
-                    }
-                }
-
-                case 2 -> {
-                    int index = InputUtil.readInt("Select notification number: ");
-                    if (index >= 1 && index <= notifications.size()) {
-                        AppNotification n = notifications.get(index - 1);
-                        notificationRepository.delete(n.getId());
-                        loggedInPartner.removeNotification(n.getId());
-                        notifications.remove(index - 1);
-                        System.out.println("Deleted.");
-                    }
-                }
-
-                case 3 -> {
-                    if (currentPage < totalPages) currentPage++;
-                }
-
-                case 4 -> {
-                    if (currentPage > 1) currentPage--;
-                }
-
-                case 5 -> {
-                    notificationRepository.deleteAll(loggedInPartner.getId());
-                    loggedInPartner.clearNotifications();
-                    System.out.println("All notifications cleared.");
-                    return;
-                }
-
-                case 6 -> {
-                    return;
-                }
-
-                default -> System.out.println("Invalid option.");
-            }
-        }
-    }
+//    private void viewNotifications() {
+//
+//        // Re-fetch the partner from DB to get notifications that arrived
+//        // during this session (e.g. order-assigned events written via
+//        // NotificationService while the partner was on another screen).
+//        try {
+//            loggedInPartner = partnerService.findById(loggedInPartner.getId());
+//        } catch (Exception e) {
+//            System.out.println("Could not refresh notifications: " + e.getMessage());
+//        }
+//
+//        List<AppNotification> notifications = new ArrayList<>(loggedInPartner.getNotifications());
+//
+//        if (notifications.isEmpty()) {
+//            System.out.println("No notifications.");
+//            return;
+//        }
+//
+//        // Sort newest first
+//        notifications.sort(Comparator.comparing(AppNotification::getTimestamp).reversed());
+//
+//        int pageSize = 5;
+//        int totalPages = (int) Math.ceil((double) notifications.size() / pageSize);
+//
+//        int currentPage = 1;
+//
+//        while (true) {
+//
+//            int start = (currentPage - 1) * pageSize;
+//            int end = Math.min(start + pageSize, notifications.size());
+//
+//            System.out.println("\n=== YOUR NOTIFICATIONS ===");
+//            System.out.println("Page " + currentPage + " of " + totalPages);
+//            System.out.println("--------------------------------------------------");
+//
+//            for (int i = start; i < end; i++) {
+//                System.out.println((i + 1) + ". " + notifications.get(i));
+//            }
+//
+//            System.out.println("--------------------------------------------------");
+//            System.out.println("1. Mark as Read");
+//            System.out.println("2. Delete");
+//            System.out.println("3. Next Page");
+//            System.out.println("4. Previous Page");
+//            System.out.println("5. Clear All");
+//            System.out.println("6. Back");
+//
+//            int choice = InputUtil.readInt("Enter choice: ");
+//
+//            switch (choice) {
+//
+//                case 1 -> {
+//                    int index = InputUtil.readInt("Select notification number: ");
+//                    if (index >= 1 && index <= notifications.size()) {
+//                        AppNotification n = notifications.get(index - 1);
+//                        n.markAsRead();
+//                        notificationRepository.markAsRead(n.getId());
+//                        System.out.println("Marked as read.");
+//                    }
+//                }
+//
+//                case 2 -> {
+//                    int index = InputUtil.readInt("Select notification number: ");
+//                    if (index >= 1 && index <= notifications.size()) {
+//                        AppNotification n = notifications.get(index - 1);
+//                        notificationRepository.delete(n.getId());
+//                        loggedInPartner.removeNotification(n.getId());
+//                        notifications.remove(index - 1);
+//                        System.out.println("Deleted.");
+//                    }
+//                }
+//
+//                case 3 -> {
+//                    if (currentPage < totalPages) currentPage++;
+//                }
+//
+//                case 4 -> {
+//                    if (currentPage > 1) currentPage--;
+//                }
+//
+//                case 5 -> {
+//                    notificationRepository.deleteAll(loggedInPartner.getId());
+//                    loggedInPartner.clearNotifications();
+//                    System.out.println("All notifications cleared.");
+//                    return;
+//                }
+//
+//                case 6 -> {
+//                    return;
+//                }
+//
+//                default -> System.out.println("Invalid option.");
+//            }
+//        }
+//    }
 
     //    Select Order - No manual UUID
     private Order selectOrder(List<Order> orders) {

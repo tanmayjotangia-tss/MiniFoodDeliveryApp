@@ -75,7 +75,8 @@ public class ApplicationController {
         // ── Step 4: Build services ─────────────────────────────────────────────
         DeliveryAssignmentStrategy deliveryStrategy = new FirstAvailableDeliveryAssignment();
 
-        NotificationService notificationService = new NotificationService(userRepository);
+        DBNotificationRepository notificationRepository = new DBNotificationRepository();
+        NotificationService notificationService = new NotificationService(userRepository,notificationRepository);
 
         // MenuService receives the live in-memory Menu reference so its
         // getAllCategories() read never touches the database.
@@ -95,9 +96,6 @@ public class ApplicationController {
         DeliveryPartnerService deliveryService =
                 new DeliveryPartnerService(userRepository, orderService);
 
-        // Shared notification repository — targeted single-row SQL, no full user save
-        DBNotificationRepository notificationRepository = new DBNotificationRepository();
-
         // ── Step 5: Build controllers ──────────────────────────────────────────
         this.adminController = new AdminController(menuService, deliveryService, discountService,
                 orderService, this.menu, authService, discountRepository, cartRepository);
@@ -106,8 +104,7 @@ public class ApplicationController {
                 cartRepository, discountService, this.userRepository, notificationRepository);
 
         this.deliveryPartnerController =
-                new DeliveryPartnerController(orderService, deliveryService, authService,
-                        this.userRepository, notificationRepository);
+                new DeliveryPartnerController(orderService, deliveryService, authService);
 
         // ── Step 6: Ensure a default admin exists ──────────────────────────────
         initializeAdminIfNotExists();
