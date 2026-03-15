@@ -3,8 +3,8 @@ package com.fooddeliveryapp.services.delivery;
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
-import com.fooddeliveryapp.models.repository.UserRepository;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
+import com.fooddeliveryapp.repository.UserRepository;
 import com.fooddeliveryapp.services.order.OrderService;
 
 import java.util.List;

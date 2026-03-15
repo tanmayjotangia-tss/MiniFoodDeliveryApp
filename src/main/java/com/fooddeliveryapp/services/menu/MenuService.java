@@ -4,29 +4,19 @@ import com.fooddeliveryapp.exception.DuplicateEntityException;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.menu.MenuCategory;
 import com.fooddeliveryapp.models.menu.MenuItem;
-import com.fooddeliveryapp.models.repository.Repository;
+import com.fooddeliveryapp.repository.Repository;
 
 import java.util.List;
 
 public class MenuService {
 
     private final Repository<Menu> menuRepository;
-
-    /**
-     * The single in-memory Menu instance for the restaurant.
-     *
-     * All READ operations use this reference directly — no DB round-trip.
-     * All WRITE operations mutate this object first, then persist to DB
-     * via menuRepository.save(), keeping the two always in sync.
-     */
     private final Menu menu;
 
     public MenuService(Repository<Menu> menuRepository, Menu menu) {
         this.menuRepository = menuRepository;
         this.menu = menu;
     }
-
-    // ── writes: mutate in-memory object then persist ──────────────────────────
 
     public void addCategory(Menu menu, MenuCategory category) {
         try {
@@ -56,8 +46,6 @@ public class MenuService {
         menu.removeCategory(category);
         menuRepository.save(menu);
     }
-
-    // ── read: served entirely from the in-memory Menu — zero DB calls ─────────
 
     public List<MenuCategory> getAllCategories() {
         return menu.getRootCategory()

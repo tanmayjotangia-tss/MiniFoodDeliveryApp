@@ -2,10 +2,10 @@ package com.fooddeliveryapp.services.helper;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.notification.NotificationType;
-import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
+import com.fooddeliveryapp.repository.Repository;
 import com.fooddeliveryapp.services.order.OrderService;
 
 import java.util.Optional;

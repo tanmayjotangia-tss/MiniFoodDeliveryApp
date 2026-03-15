@@ -23,7 +23,6 @@ public final class DatabaseConnection {
             }
             CONFIG.load(is);
 
-            // Eagerly load the driver class
             Class.forName(CONFIG.getProperty("db.driver", "org.postgresql.Driver"));
 
         } catch (IOException | ClassNotFoundException e) {
@@ -31,12 +30,8 @@ public final class DatabaseConnection {
         }
     }
 
-    private DatabaseConnection() { /* utility class */ }
+    private DatabaseConnection() {}
 
-    /**
-     * Returns a new JDBC {@link Connection}.
-     * The caller MUST close this connection when done.
-     */
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(
                 CONFIG.getProperty("db.url"),

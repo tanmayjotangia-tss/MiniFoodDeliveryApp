@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.models.repository;
+package com.fooddeliveryapp.repository;
 
 import com.fooddeliveryapp.db.DatabaseConnection;
 import com.fooddeliveryapp.models.menu.MenuItem;
@@ -13,22 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * PostgreSQL-backed implementation of {@link Repository} for {@link Order}.
- *
- * <p>Replaces the old {@code FileRepository<Order>} ("orders.dat").
- * All public method signatures are identical to the old implementation.</p>
- *
- * <p>Order items are stored with a <strong>price snapshot</strong>: even if the
- * admin later updates or removes a menu item, the original price is preserved
- * in the {@code order_items.item_price} column.</p>
- *
- * <p>Every multi-step write is wrapped in a transaction so the orders table and
- * the order_items table are always in sync.</p>
- */
 public class DBOrderRepository implements Repository<Order> {
-
-    // ── SQL constants ────────────────────────────────────────────────────────
 
     private static final String UPSERT_ORDER = """
             INSERT INTO orders
@@ -63,12 +48,6 @@ public class DBOrderRepository implements Repository<Order> {
     private static final String DELETE_ORDER =
             "DELETE FROM orders WHERE id = ?";
 
-    // ── Repository<Order> ────────────────────────────────────────────────────
-
-    /**
-     * Inserts or updates the order row and fully replaces its items.
-     * Runs inside a single transaction.
-     */
     @Override
     public void save(Order order) {
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -136,9 +115,6 @@ public class DBOrderRepository implements Repository<Order> {
         }
     }
 
-    // ── private helpers ──────────────────────────────────────────────────────
-
-    /** Upserts the core orders row. id / created_at are never overwritten. */
     private void upsertOrder(Order order, Connection conn) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(UPSERT_ORDER)) {
             ps.setString(1, order.getId());
@@ -158,7 +134,6 @@ public class DBOrderRepository implements Repository<Order> {
                 ps.setNull(6, Types.VARCHAR);
             }
 
-            // Store discount; finalAmount is computed in Java from total - discount
             ps.setDouble(7, order.getTotalAmount() - order.getFinalAmount());
             ps.setTimestamp(8, Timestamp.valueOf(order.getCreatedAt()));
 
@@ -166,27 +141,20 @@ public class DBOrderRepository implements Repository<Order> {
         }
     }
 
-    /**
-     * Deletes all existing items for this order then re-inserts the current list.
-     * Items carry a price snapshot so historical invoices are unaffected by
-     * future menu price changes.
-     */
     private void syncOrderItems(Order order, Connection conn) throws SQLException {
-        // 1. Delete old items
         try (PreparedStatement del = conn.prepareStatement(DELETE_ORDER_ITEMS)) {
             del.setString(1, order.getId());
             del.executeUpdate();
         }
 
-        // 2. Re-insert current items
         if (order.getItems().isEmpty()) return;
 
         try (PreparedStatement ins = conn.prepareStatement(INSERT_ORDER_ITEM)) {
             for (OrderItem oi : order.getItems()) {
                 ins.setString(1, order.getId());
-                ins.setString(2, oi.item().getId());   // FK (nullable — item may be deleted later)
-                ins.setString(3, oi.item().getName()); // price snapshot: name
-                ins.setDouble(4, oi.item().getPrice()); // price snapshot: price
+                ins.setString(2, oi.item().getId());   
+                ins.setString(3, oi.item().getName()); 
+                ins.setDouble(4, oi.item().getPrice()); 
                 ins.setInt(5, oi.quantity());
                 ins.addBatch();
             }
@@ -194,11 +162,6 @@ public class DBOrderRepository implements Repository<Order> {
         }
     }
 
-    /**
-     * Maps a ResultSet row to an {@link Order}, including loading its items.
-     * Uses the price snapshot stored in order_items so reconstruction is
-     * independent of the current menu state.
-     */
     private Order mapOrder(ResultSet rs, Connection conn) throws SQLException {
         String      id                = rs.getString("id");
         String      customerId        = rs.getString("customer_id");
@@ -213,18 +176,12 @@ public class DBOrderRepository implements Repository<Order> {
 
         String deliveryPartnerId      = rs.getString("delivery_partner_id");
 
-        // Load items from snapshot
         List<OrderItem> items = loadOrderItems(id, conn);
 
         return new Order(id, customerId, customerName, items, createdAt,
                 paymentMode, deliveryPartnerId, status, discount);
     }
 
-    /**
-     * Loads the persisted order items, reconstructing each {@link MenuItem}
-     * from the stored snapshot (name + price) rather than from the live menu.
-     * This preserves the historical view of every order.
-     */
     private List<OrderItem> loadOrderItems(String orderId, Connection conn) throws SQLException {
         List<OrderItem> items = new ArrayList<>();
 
@@ -237,7 +194,6 @@ public class DBOrderRepository implements Repository<Order> {
                     double itemPrice = rs.getDouble("item_price");
                     int    quantity  = rs.getInt("quantity");
 
-                    // Rebuild MenuItem purely from snapshot — id may be null if item deleted
                     String safeId = (itemId != null) ? itemId : "deleted-" + itemName;
                     MenuItem snapshot = new MenuItem(safeId, itemName, itemPrice);
 

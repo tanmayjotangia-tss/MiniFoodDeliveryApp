@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.models.repository;
+package com.fooddeliveryapp.repository;
 
 import com.fooddeliveryapp.db.DatabaseConnection;
 import com.fooddeliveryapp.models.notification.AppNotification;

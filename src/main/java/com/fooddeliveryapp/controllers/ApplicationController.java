@@ -3,10 +3,11 @@ package com.fooddeliveryapp.controllers;
 import com.fooddeliveryapp.db.DatabaseInitializer;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.order.Order;
-import com.fooddeliveryapp.models.repository.*;
 import com.fooddeliveryapp.models.users.Admin;
 import com.fooddeliveryapp.models.users.Role;
-import com.fooddeliveryapp.models.users.User;import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
+import com.fooddeliveryapp.models.users.User;
+import com.fooddeliveryapp.repository.*;
+import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
 import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
 import com.fooddeliveryapp.services.delivery.FirstAvailableDeliveryAssignment;
 import com.fooddeliveryapp.services.discount.DiscountService;
@@ -37,25 +38,7 @@ public class ApplicationController {
 
     public ApplicationController() {
 
-        // ── Step 1: Initialise the database (create tables if needed) ─────────
         DatabaseInitializer.initialize();
-
-        // ── Step 2: Wire JDBC repositories (replaces File* implementations) ───
-        //
-        //  OLD:  new FileRepository<>("menu.dat")
-        //  NEW:  new JdbcMenuRepository()
-        //
-        //  OLD:  new FileRepository<>("orders.dat")
-        //  NEW:  new JdbcOrderRepository()
-        //
-        //  OLD:  new FileUserRepository("users.dat")
-        //  NEW:  new JdbcUserRepository()
-        //
-        //  OLD:  new FileCartRepository("carts.dat")
-        //  NEW:  new JdbcCartRepository(userRepository)
-        //
-        //  OLD:  new FileDiscountRepository("discount.dat")
-        //  NEW:  new JdbcDiscountRepository()
 
         Repository<Menu>  menuRepository  = new DBMenuRepository();
         Repository<Order> orderRepository = new DBOrderRepository();
@@ -63,7 +46,6 @@ public class ApplicationController {
         this.userRepository = new DBUserRepository();
         this.cartRepository = new DBCartRepository(this.userRepository);
 
-        // ── Step 3: Load (or create) the single Menu ──────────────────────────
         List<Menu> menus = menuRepository.findAll();
         if (menus.isEmpty()) {
             this.menu = new Menu("My Restaurant");
@@ -72,14 +54,11 @@ public class ApplicationController {
             this.menu = menus.get(0);
         }
 
-        // ── Step 4: Build services ─────────────────────────────────────────────
         DeliveryAssignmentStrategy deliveryStrategy = new FirstAvailableDeliveryAssignment();
 
         DBNotificationRepository notificationRepository = new DBNotificationRepository();
         NotificationService notificationService = new NotificationService(userRepository,notificationRepository);
 
-        // MenuService receives the live in-memory Menu reference so its
-        // getAllCategories() read never touches the database.
         MenuService menuService = new MenuService(menuRepository, this.menu);
 
         DBDiscountRepository discountRepository = new DBDiscountRepository();
@@ -96,7 +75,6 @@ public class ApplicationController {
         DeliveryPartnerService deliveryService =
                 new DeliveryPartnerService(userRepository, orderService);
 
-        // ── Step 5: Build controllers ──────────────────────────────────────────
         this.adminController = new AdminController(menuService, deliveryService, discountService,
                 orderService, this.menu, authService, discountRepository, cartRepository);
 
@@ -106,11 +84,9 @@ public class ApplicationController {
         this.deliveryPartnerController =
                 new DeliveryPartnerController(orderService, deliveryService, authService);
 
-        // ── Step 6: Ensure a default admin exists ──────────────────────────────
         initializeAdminIfNotExists();
     }
 
-    /** Ensures exactly one ADMIN user exists in the database on first boot. */
     private void initializeAdminIfNotExists() {
         if (userRepository.findAll()
                 .stream()

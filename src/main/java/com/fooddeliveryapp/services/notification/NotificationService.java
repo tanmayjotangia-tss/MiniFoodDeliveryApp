@@ -2,9 +2,9 @@ package com.fooddeliveryapp.services.notification;
 
 import com.fooddeliveryapp.exception.EntityNotFoundException;
 import com.fooddeliveryapp.models.notification.AppNotification;
-import com.fooddeliveryapp.models.repository.DBNotificationRepository;
-import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.User;
+import com.fooddeliveryapp.repository.DBNotificationRepository;
+import com.fooddeliveryapp.repository.Repository;
 
 public class NotificationService {
 

@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.models.repository;
+package com.fooddeliveryapp.repository;
 
 import com.fooddeliveryapp.db.DatabaseConnection;
 import com.fooddeliveryapp.models.cart.Cart;
@@ -98,11 +98,6 @@ public class DBCartRepository implements CartRepository {
         return carts;
     }
 
-    /**
-     * Removes a menu item from every cart in the database in a single SQL call.
-     * This is called when an admin deletes a menu item so no cart keeps a
-     * dangling reference.
-     */
     @Override
     public void removeItemFromAllCarts(String itemId) {
         try (Connection conn = DatabaseConnection.getConnection();
@@ -117,9 +112,6 @@ public class DBCartRepository implements CartRepository {
         }
     }
 
-    // ── private save helpers ─────────────────────────────────────────────────
-
-    /** Upserts the carts row (one per customer). */
     private void upsertCart(Cart cart, Connection conn) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(UPSERT_CART)) {
             ps.setString(1, cart.getId());
@@ -128,19 +120,12 @@ public class DBCartRepository implements CartRepository {
         }
     }
 
-    /**
-     * Replaces all cart_items rows for this cart.
-     * Items whose menu_item_id no longer exists in menu_items are skipped
-     * gracefully (they were cleaned up by removeItemFromAllCarts).
-     */
     private void syncCartItems(Cart cart, Connection conn) throws SQLException {
-        // 1. Delete current items
         try (PreparedStatement del = conn.prepareStatement(DELETE_CART_ITEMS)) {
             del.setString(1, cart.getId());
             del.executeUpdate();
         }
 
-        // 2. Re-insert live items
         if (cart.getItems().isEmpty()) return;
 
         try (PreparedStatement ins = conn.prepareStatement(INSERT_CART_ITEM)) {
@@ -154,14 +139,10 @@ public class DBCartRepository implements CartRepository {
         }
     }
 
-    // ── private load helpers ─────────────────────────────────────────────────
-
-    /** Reconstructs a {@link Cart} from a ResultSet row plus its items. */
     private Cart loadCart(ResultSet rs, Connection conn) throws SQLException {
         String cartId      = rs.getString("id");
         String customerId  = rs.getString("customer_id");
 
-        // Reconstruct the Customer from the user repository
         Customer customer = userRepository.findById(customerId)
                 .filter(u -> u instanceof Customer)
                 .map(u -> (Customer) u)
@@ -172,10 +153,6 @@ public class DBCartRepository implements CartRepository {
         return new Cart(cartId, customer, items);
     }
 
-    /**
-     * Loads the cart items for a given cart, reconstructing each
-     * {@link MenuItem} from the joined menu_items row (live price and name).
-     */
     private List<CartItem> loadCartItems(String cartId, Connection conn) throws SQLException {
         List<CartItem> items = new ArrayList<>();
 

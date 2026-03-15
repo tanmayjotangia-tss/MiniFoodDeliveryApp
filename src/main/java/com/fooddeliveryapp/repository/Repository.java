@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.models.repository;
+package com.fooddeliveryapp.repository;
 
 import java.util.List;
 import java.util.Optional;

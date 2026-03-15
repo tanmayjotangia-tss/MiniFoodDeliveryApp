@@ -1,4 +1,4 @@
-package com.fooddeliveryapp.models.repository;
+package com.fooddeliveryapp.repository;
 
 import com.fooddeliveryapp.db.DatabaseConnection;
 import com.fooddeliveryapp.models.notification.AppNotification;
@@ -37,7 +37,6 @@ public class DBUserRepository implements UserRepository {
     private static final String SELECT_BY_EMAIL =
             SELECT_USER_BASE + " WHERE LOWER(u.email) = LOWER(?)";
 
-    // ── users upsert ──────────────────────────────────────────────────────────
     private static final String UPSERT_USERS = """
             INSERT INTO users (id, name, email, phone, password, role)
             VALUES (?,?,?,?,?,?)
@@ -49,7 +48,6 @@ public class DBUserRepository implements UserRepository {
                 role     = EXCLUDED.role
             """;
 
-    // ── sub-table upserts ─────────────────────────────────────────────────────
     private static final String UPSERT_ADMIN = """
             INSERT INTO admins (user_id) VALUES (?)
             ON CONFLICT (user_id) DO NOTHING
@@ -73,7 +71,6 @@ public class DBUserRepository implements UserRepository {
                 incentive_percentage = EXCLUDED.incentive_percentage
             """;
 
-    // ── delete / notifications ────────────────────────────────────────────────
     private static final String DELETE_USER =
             "DELETE FROM users WHERE id = ?";
 
@@ -91,8 +88,6 @@ public class DBUserRepository implements UserRepository {
             WHERE user_id = ?
             ORDER BY created_at ASC
             """;
-
-    // ── Repository<User> ─────────────────────────────────────────────────────
 
     @Override
     public void save(User user) {
@@ -153,7 +148,6 @@ public class DBUserRepository implements UserRepository {
 
     @Override
     public void delete(String id) {
-        // Cascades to admins / customers / delivery_partners / notifications
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(DELETE_USER)) {
 
@@ -166,21 +160,18 @@ public class DBUserRepository implements UserRepository {
         }
     }
 
-    // ── private write helpers ─────────────────────────────────────────────────
-
     private void upsertUsersRow(User user, Connection conn) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(UPSERT_USERS)) {
             ps.setString(1, user.getId());
             ps.setString(2, user.getName());
             ps.setString(3, user.getEmail());
-            ps.setString(4, user.getPhone());   // phone is on users for all roles
+            ps.setString(4, user.getPhone());
             ps.setString(5, user.getPassword());
             ps.setString(6, user.getRole().name());
             ps.executeUpdate();
         }
     }
 
-    /** Upserts the role-specific sub-table row. */
     private void upsertSubTypeRow(User user, Connection conn) throws SQLException {
         switch (user.getRole()) {
 
@@ -214,7 +205,6 @@ public class DBUserRepository implements UserRepository {
         }
     }
 
-    /** Replaces all notifications for this user (delete + batch insert). */
     private void syncNotifications(User user, Connection conn) throws SQLException {
         try (PreparedStatement del = conn.prepareStatement(DELETE_NOTIFICATIONS)) {
             del.setString(1, user.getId());
@@ -237,7 +227,6 @@ public class DBUserRepository implements UserRepository {
         }
     }
 
-    // ── private read helpers ──────────────────────────────────────────────────
     private List<User> executeUserQuery(PreparedStatement ps,
                                         Connection conn) throws SQLException {
         List<User> users = new ArrayList<>();
@@ -281,7 +270,6 @@ public class DBUserRepository implements UserRepository {
         };
     }
 
-    /** Loads the notifications list from DB and injects it into the user object. */
     private void loadNotifications(User user, Connection conn) throws SQLException {
         List<AppNotification> notifs = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(SELECT_NOTIFICATIONS)) {
@@ -299,8 +287,6 @@ public class DBUserRepository implements UserRepository {
         }
         user.restoreNotifications(notifs);
     }
-
-    // ── notification_preferences serialization ────────────────────────────────
 
     private String serializePreferences(Set<NotificationType> prefs) {
         if (prefs == null || prefs.isEmpty()) return "";

@@ -11,10 +11,10 @@ import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderItem;
 import com.fooddeliveryapp.models.order.OrderStatus;
 import com.fooddeliveryapp.models.order.PaymentMode;
-import com.fooddeliveryapp.models.repository.Repository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
+import com.fooddeliveryapp.repository.Repository;
 import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
 import com.fooddeliveryapp.services.discount.DiscountService;
 import com.fooddeliveryapp.services.notification.NotificationService;
@@ -106,16 +106,12 @@ public class OrderService {
             throw new IllegalStateException("Only PAID orders can be confirmed.");
         }
 
-        // Re-attach observers
         attachObservers(order);
 
-        // Confirm order — internally fires notifyObservers("Your order is confirmed...")
         order.confirmByAdmin();
 
-        // Get all delivery partners
         List<DeliveryPartner> partners = userRepository.findAll().stream().filter(u -> u instanceof DeliveryPartner).map(u -> (DeliveryPartner) u).toList();
 
-        // Case: No partners registered
         if (partners.isEmpty()) {
             waitingOrders.add(order);
             System.out.println("No delivery partners registered. Order added to queue.");
@@ -123,10 +119,8 @@ public class OrderService {
             return;
         }
 
-        //  Try assigning partner
         DeliveryPartner selected = deliveryStrategy.assign(order, partners);
 
-        //  Case: All partners busy
         if (selected == null) {
             waitingOrders.add(order);
             System.out.println("All partners busy. Order added to queue.");
@@ -134,15 +128,10 @@ public class OrderService {
             return;
         }
 
-        // 7️⃣ Assign partner — internally fires notifyObservers("Your order is out for delivery.")
-        // Attach customer + partner observers BEFORE assignDeliveryPartner fires
-        // "Your order is out for delivery." The old code called attachObservers AFTER,
-        // so the partner observer was never present when the notification fired.
         attachObservers(order, selected.getId());
         order.assignDeliveryPartner(selected.getId());
         selected.setAvailable(false);
 
-        // Persist changes
         userRepository.save(selected);
         orderRepository.save(order);
     }
@@ -164,8 +153,6 @@ public class OrderService {
                 .map(u -> (DeliveryPartner) u)
                 .orElseThrow(() -> new IllegalArgumentException("Delivery Partner not found"));
 
-        // Attach observers BEFORE markDelivered fires "Your order has been delivered."
-        // Without this, neither customer nor partner received the delivery notification.
         attachObservers(order);
         order.markDelivered();
         partner.setAvailable(true);
@@ -178,8 +165,6 @@ public class OrderService {
 
     private void assignNextFromQueue(DeliveryPartner partner) {
 
-        // Drain the queue, skipping any orders that were cancled
-        // while waiting (e.g., admin cancled mid-queue).
         while (!waitingOrders.isEmpty()) {
 
             Order next = waitingOrders.poll();
@@ -188,24 +173,18 @@ public class OrderService {
                 break;
             }
 
-            // Re-fetch from repository to get the latest persisted status.
             Order fresh = orderRepository.findById(next.getId()).orElse(null);
 
             if (fresh == null) {
-                // Order was deleted externally — skip it.
                 System.out.println("[OrderService] Queued order " + next.getId() + " no longer exists — skipping.");
                 continue;
             }
 
             if (fresh.getStatus() != OrderStatus.CONFIRMED_BY_ADMIN) {
-                // Order was cancled or already assigned by another path — skip it.
                 System.out.println("[OrderService] Queued order " + fresh.getId() + " has status " + fresh.getStatus() + " — skipping.");
                 continue;
             }
 
-            // Attach partner observer BEFORE assignDeliveryPartner fires
-            // "Your order is out for delivery." At this point fresh.getDeliveryPartnerId()
-            // is still null, so the single-arg overload would miss the partner.
             attachObservers(fresh, partner.getId());
             fresh.assignDeliveryPartner(partner.getId());
             partner.setAvailable(false);
@@ -218,16 +197,6 @@ public class OrderService {
         }
     }
 
-    /**
-     * Attaches all appropriate observers to the order.
-     * Use this overload when the partner has not yet been set on the order
-     * (i.e. before calling {@code order.assignDeliveryPartner()}) but the
-     * partner is already known — so the partner observer is registered before
-     * the notification fires.
-     *
-     * @param explicitPartnerId partner to include even if not yet on the order;
-     *                          pass {@code null} to use only the order's own partnerId
-     */
     private void attachObservers(Order order, String explicitPartnerId) {
 
         order.clearObservers();
@@ -249,7 +218,6 @@ public class OrderService {
             order.addObserver(new PersistentNotification(notificationService, order.getCustomerId()));
         }
 
-        // Use explicit partnerId if provided, fall back to the one already on the order
         String partnerId = (explicitPartnerId != null) ? explicitPartnerId : order.getDeliveryPartnerId();
 
         if (partnerId != null) {
@@ -264,7 +232,6 @@ public class OrderService {
         }
     }
 
-    /** Convenience overload — uses only the partnerId already set on the order. */
     private void attachObservers(Order order) {
         attachObservers(order, null);
     }
@@ -308,7 +275,7 @@ public class OrderService {
         if(order == null){
             throw new EntityNotFoundException("Cannot find order with id " + orderId);
         }
-        // Re-attach observers so the customer receives the cancellation notification.
+
         attachObservers(order);
         OrderStatus status = order.getStatus();
 
@@ -326,7 +293,6 @@ public class OrderService {
         }
 
         if (status == OrderStatus.OUT_FOR_DELIVERY) {
-            // Free the assigned partner before cancelling so they can accept new orders.
             String partnerId = order.getDeliveryPartnerId();
             if (partnerId != null) {
                 userRepository.findById(partnerId)
@@ -340,7 +306,7 @@ public class OrderService {
                         });
             }
         }
-        // order.cancel() internally fires notifyObservers("Order has been cancelled.")
+
         order.cancel();
         orderRepository.save(order);
     }
