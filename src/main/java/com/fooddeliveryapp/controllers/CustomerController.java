@@ -11,6 +11,8 @@ import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderItem;
 import com.fooddeliveryapp.models.order.PaymentMode;
 import com.fooddeliveryapp.models.repository.CartRepository;
+import com.fooddeliveryapp.models.repository.DBNotificationRepository;
+import com.fooddeliveryapp.models.repository.UserRepository;
 import com.fooddeliveryapp.models.users.Customer;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.services.discount.DiscountService;
@@ -31,15 +33,22 @@ public class CustomerController {
     private final AuthService authService;
     private final CartRepository cartRepository;
     private final DiscountService discountService;
+    private final UserRepository userRepository;
+    private final DBNotificationRepository notificationRepository;
     private Cart cart;
     private Customer loggedInCustomer;
 
-    public CustomerController(OrderService orderService, Menu menu, AuthService authService, CartRepository cartRepository, DiscountService discountService) {
-        this.orderService = orderService;
-        this.menu = menu;
-        this.authService = authService;
-        this.cartRepository = cartRepository;
-        this.discountService = discountService;
+    public CustomerController(OrderService orderService, Menu menu, AuthService authService,
+                              CartRepository cartRepository, DiscountService discountService,
+                              UserRepository userRepository,
+                              DBNotificationRepository notificationRepository) {
+        this.orderService             = orderService;
+        this.menu                     = menu;
+        this.authService              = authService;
+        this.cartRepository           = cartRepository;
+        this.discountService          = discountService;
+        this.userRepository           = userRepository;
+        this.notificationRepository   = notificationRepository;
     }
 
     public void start() {
@@ -126,6 +135,14 @@ public class CustomerController {
 
     private void viewNotifications() {
 
+        // Re-fetch the customer from DB to get notifications that arrived
+        // during this session (written by NotificationService via a separate
+        // DB-loaded object, so the in-memory loggedInCustomer is stale).
+        userRepository.findById(loggedInCustomer.getId())
+                .filter(u -> u instanceof Customer)
+                .map(u -> (Customer) u)
+                .ifPresent(fresh -> loggedInCustomer = fresh);
+
         List<AppNotification> notifications = new ArrayList<>(loggedInCustomer.getNotifications());
 
         if (notifications.isEmpty()) {
@@ -169,7 +186,9 @@ public class CustomerController {
                 case 1 -> {
                     int index = InputUtil.readInt("Select notification number: ");
                     if (index >= 1 && index <= notifications.size()) {
-                        notifications.get(index - 1).markAsRead();
+                        AppNotification n = notifications.get(index - 1);
+                        n.markAsRead();
+                        notificationRepository.markAsRead(n.getId());
                         System.out.println("Marked as read.");
                     }
                 }
@@ -177,8 +196,9 @@ public class CustomerController {
                 case 2 -> {
                     int index = InputUtil.readInt("Select notification number: ");
                     if (index >= 1 && index <= notifications.size()) {
-                        String id = notifications.get(index - 1).getId();
-                        loggedInCustomer.removeNotification(id);
+                        AppNotification n = notifications.get(index - 1);
+                        notificationRepository.delete(n.getId());
+                        loggedInCustomer.removeNotification(n.getId());
                         notifications.remove(index - 1);
                         System.out.println("Deleted.");
                     }
@@ -193,6 +213,7 @@ public class CustomerController {
                 }
 
                 case 5 -> {
+                    notificationRepository.deleteAll(loggedInCustomer.getId());
                     loggedInCustomer.clearNotifications();
                     System.out.println("All notifications cleared.");
                     return;
@@ -339,7 +360,7 @@ public class CustomerController {
             case 2 -> {
                 mode = PaymentMode.UPI;
 
-                InputUtil.readUPI("Enter UPI ID: ");
+                String upiId = InputUtil.readUPI("Enter UPI ID: ");
 
                 strategy = PaymentFactory.getStrategy("UPI");
             }
@@ -505,6 +526,8 @@ public class CustomerController {
     }
 
     private void displayOrderHistorySummary(List<Order> orders) {
+
+        final int WIDTH = 60;
 
         System.out.println("============================================================");
         System.out.printf("%30s%n", "ORDER HISTORY");

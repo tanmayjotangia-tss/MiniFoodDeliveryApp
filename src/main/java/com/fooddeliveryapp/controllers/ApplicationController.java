@@ -6,8 +6,7 @@ import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.repository.*;
 import com.fooddeliveryapp.models.users.Admin;
 import com.fooddeliveryapp.models.users.Role;
-import com.fooddeliveryapp.models.users.User;
-import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
+import com.fooddeliveryapp.models.users.User;import com.fooddeliveryapp.services.delivery.DeliveryAssignmentStrategy;
 import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
 import com.fooddeliveryapp.services.delivery.FirstAvailableDeliveryAssignment;
 import com.fooddeliveryapp.services.discount.DiscountService;
@@ -44,19 +43,19 @@ public class ApplicationController {
         // ── Step 2: Wire JDBC repositories (replaces File* implementations) ───
         //
         //  OLD:  new FileRepository<>("menu.dat")
-        //  NEW:  new DBMenuRepository()
+        //  NEW:  new JdbcMenuRepository()
         //
         //  OLD:  new FileRepository<>("orders.dat")
-        //  NEW:  new DBOrderRepository()
+        //  NEW:  new JdbcOrderRepository()
         //
         //  OLD:  new FileUserRepository("users.dat")
-        //  NEW:  new DBUserRepository()
+        //  NEW:  new JdbcUserRepository()
         //
         //  OLD:  new FileCartRepository("carts.dat")
-        //  NEW:  new DBCartRepository(userRepository)
+        //  NEW:  new JdbcCartRepository(userRepository)
         //
         //  OLD:  new FileDiscountRepository("discount.dat")
-        //  NEW:  new DBDiscountRepository()
+        //  NEW:  new JdbcDiscountRepository()
 
         Repository<Menu>  menuRepository  = new DBMenuRepository();
         Repository<Order> orderRepository = new DBOrderRepository();
@@ -96,15 +95,19 @@ public class ApplicationController {
         DeliveryPartnerService deliveryService =
                 new DeliveryPartnerService(userRepository, orderService);
 
+        // Shared notification repository — targeted single-row SQL, no full user save
+        DBNotificationRepository notificationRepository = new DBNotificationRepository();
+
         // ── Step 5: Build controllers ──────────────────────────────────────────
         this.adminController = new AdminController(menuService, deliveryService, discountService,
                 orderService, this.menu, authService, discountRepository, cartRepository);
 
         this.customerController = new CustomerController(orderService, this.menu, authService,
-                cartRepository, discountService);
+                cartRepository, discountService, this.userRepository, notificationRepository);
 
         this.deliveryPartnerController =
-                new DeliveryPartnerController(orderService, deliveryService, authService);
+                new DeliveryPartnerController(orderService, deliveryService, authService,
+                        this.userRepository, notificationRepository);
 
         // ── Step 6: Ensure a default admin exists ──────────────────────────────
         initializeAdminIfNotExists();

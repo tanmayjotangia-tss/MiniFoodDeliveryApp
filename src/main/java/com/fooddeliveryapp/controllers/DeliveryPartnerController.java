@@ -4,6 +4,8 @@ import com.fooddeliveryapp.exception.InvalidOperationException;
 import com.fooddeliveryapp.models.notification.AppNotification;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.order.OrderStatus;
+import com.fooddeliveryapp.models.repository.DBNotificationRepository;
+import com.fooddeliveryapp.models.repository.UserRepository;
 import com.fooddeliveryapp.models.users.DeliveryPartner;
 import com.fooddeliveryapp.models.users.User;
 import com.fooddeliveryapp.services.delivery.DeliveryPartnerService;
@@ -20,14 +22,20 @@ public class DeliveryPartnerController {
     private final OrderService orderService;
     private final DeliveryPartnerService partnerService;
     private final AuthService authService;
+    private final UserRepository userRepository;
+    private final DBNotificationRepository notificationRepository;
 
     private DeliveryPartner loggedInPartner;
 
-    public DeliveryPartnerController(OrderService orderService, DeliveryPartnerService partnerService, AuthService authService) {
+    public DeliveryPartnerController(OrderService orderService, DeliveryPartnerService partnerService,
+                                     AuthService authService, UserRepository userRepository,
+                                     DBNotificationRepository notificationRepository) {
 
-        this.orderService = orderService;
-        this.partnerService = partnerService;
-        this.authService = authService;
+        this.orderService           = orderService;
+        this.partnerService         = partnerService;
+        this.authService            = authService;
+        this.userRepository         = userRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     public void start() {
@@ -211,6 +219,15 @@ public class DeliveryPartnerController {
 
     private void viewNotifications() {
 
+        // Re-fetch the partner from DB to get notifications that arrived
+        // during this session (e.g. order-assigned events written via
+        // NotificationService while the partner was on another screen).
+        try {
+            loggedInPartner = partnerService.findById(loggedInPartner.getId());
+        } catch (Exception e) {
+            System.out.println("Could not refresh notifications: " + e.getMessage());
+        }
+
         List<AppNotification> notifications = new ArrayList<>(loggedInPartner.getNotifications());
 
         if (notifications.isEmpty()) {
@@ -254,7 +271,9 @@ public class DeliveryPartnerController {
                 case 1 -> {
                     int index = InputUtil.readInt("Select notification number: ");
                     if (index >= 1 && index <= notifications.size()) {
-                        notifications.get(index - 1).markAsRead();
+                        AppNotification n = notifications.get(index - 1);
+                        n.markAsRead();
+                        notificationRepository.markAsRead(n.getId());
                         System.out.println("Marked as read.");
                     }
                 }
@@ -262,8 +281,9 @@ public class DeliveryPartnerController {
                 case 2 -> {
                     int index = InputUtil.readInt("Select notification number: ");
                     if (index >= 1 && index <= notifications.size()) {
-                        String id = notifications.get(index - 1).getId();
-                        loggedInPartner.removeNotification(id);
+                        AppNotification n = notifications.get(index - 1);
+                        notificationRepository.delete(n.getId());
+                        loggedInPartner.removeNotification(n.getId());
                         notifications.remove(index - 1);
                         System.out.println("Deleted.");
                     }
@@ -278,6 +298,7 @@ public class DeliveryPartnerController {
                 }
 
                 case 5 -> {
+                    notificationRepository.deleteAll(loggedInPartner.getId());
                     loggedInPartner.clearNotifications();
                     System.out.println("All notifications cleared.");
                     return;

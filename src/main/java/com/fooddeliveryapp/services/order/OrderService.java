@@ -44,7 +44,7 @@ public class OrderService {
         rehydrateWaitingQueue();
     }
 
-//    Scan order repo for every order with confirm bye admin status and re-enques it
+    //    Scan order repo for every order with confirm bye admin status and re-enques it
     private void rehydrateWaitingQueue() {
         orderRepository.findAll().stream().filter(o -> o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN).sorted(Comparator.comparing(Order::getCreatedAt))   // oldest first → fair FIFO
                 .forEach(waitingOrders::add);
@@ -135,11 +135,14 @@ public class OrderService {
         }
 
         // 7️⃣ Assign partner — internally fires notifyObservers("Your order is out for delivery.")
+        // Attach customer + partner observers BEFORE assignDeliveryPartner fires
+        // "Your order is out for delivery." The old code called attachObservers AFTER,
+        // so the partner observer was never present when the notification fired.
+        attachObservers(order, selected.getId());
         order.assignDeliveryPartner(selected.getId());
-        attachObservers(order);
         selected.setAvailable(false);
 
-        // 8️⃣ Persist changes
+        // Persist changes
         userRepository.save(selected);
         orderRepository.save(order);
     }
@@ -161,6 +164,9 @@ public class OrderService {
                 .map(u -> (DeliveryPartner) u)
                 .orElseThrow(() -> new IllegalArgumentException("Delivery Partner not found"));
 
+        // Attach observers BEFORE markDelivered fires "Your order has been delivered."
+        // Without this, neither customer nor partner received the delivery notification.
+        attachObservers(order);
         order.markDelivered();
         partner.setAvailable(true);
 
@@ -197,7 +203,10 @@ public class OrderService {
                 continue;
             }
 
-            attachObservers(fresh);
+            // Attach partner observer BEFORE assignDeliveryPartner fires
+            // "Your order is out for delivery." At this point fresh.getDeliveryPartnerId()
+            // is still null, so the single-arg overload would miss the partner.
+            attachObservers(fresh, partner.getId());
             fresh.assignDeliveryPartner(partner.getId());
             partner.setAvailable(false);
 
@@ -209,7 +218,17 @@ public class OrderService {
         }
     }
 
-    private void attachObservers(Order order) {
+    /**
+     * Attaches all appropriate observers to the order.
+     * Use this overload when the partner has not yet been set on the order
+     * (i.e. before calling {@code order.assignDeliveryPartner()}) but the
+     * partner is already known — so the partner observer is registered before
+     * the notification fires.
+     *
+     * @param explicitPartnerId partner to include even if not yet on the order;
+     *                          pass {@code null} to use only the order's own partnerId
+     */
+    private void attachObservers(Order order, String explicitPartnerId) {
 
         order.clearObservers();
 
@@ -227,14 +246,13 @@ public class OrderService {
                 order.addObserver(new PhoneNotification(customer.getPhone()));
             }
 
-            // Always persist in-app notification
-            order.addObserver( new PersistentNotification(notificationService, order.getCustomerId())
-            );        }
+            order.addObserver(new PersistentNotification(notificationService, order.getCustomerId()));
+        }
 
-        String partnerId = order.getDeliveryPartnerId();
+        // Use explicit partnerId if provided, fall back to the one already on the order
+        String partnerId = (explicitPartnerId != null) ? explicitPartnerId : order.getDeliveryPartnerId();
 
         if (partnerId != null) {
-
             userRepository.findById(partnerId)
                     .filter(u -> u instanceof DeliveryPartner)
                     .map(u -> (DeliveryPartner) u)
@@ -244,6 +262,11 @@ public class OrderService {
                             )
                     );
         }
+    }
+
+    /** Convenience overload — uses only the partnerId already set on the order. */
+    private void attachObservers(Order order) {
+        attachObservers(order, null);
     }
 
     public List<Order> getAllOrders() {
@@ -310,11 +333,11 @@ public class OrderService {
                         .filter(u -> u instanceof DeliveryPartner)
                         .map(u -> (DeliveryPartner) u)
                         .ifPresent(p -> {
-                    p.setAvailable(true);
-                    userRepository.save(p);
-                    tryAssignWaitingOrdersToPartner(p);
+                            p.setAvailable(true);
+                            userRepository.save(p);
+                            tryAssignWaitingOrdersToPartner(p);
 
-                });
+                        });
             }
         }
         // order.cancel() internally fires notifyObservers("Order has been cancelled.")
