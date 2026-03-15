@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class DBOrderRepository implements Repository<Order> {
-
     private static final String UPSERT_ORDER = """
             INSERT INTO orders
                 (id, customer_id, customer_name, status, payment_mode,
@@ -26,9 +25,6 @@ public class DBOrderRepository implements Repository<Order> {
                 delivery_partner_id = EXCLUDED.delivery_partner_id,
                 discount            = EXCLUDED.discount
             """;
-
-    private static final String DELETE_ORDER_ITEMS =
-            "DELETE FROM order_items WHERE order_id = ?";
 
     private static final String INSERT_ORDER_ITEM = """
             INSERT INTO order_items
@@ -54,7 +50,7 @@ public class DBOrderRepository implements Repository<Order> {
             conn.setAutoCommit(false);
             try {
                 upsertOrder(order, conn);
-                syncOrderItems(order, conn);
+                insertItemsOnce(order, conn);
                 conn.commit();
             } catch (SQLException ex) {
                 conn.rollback();
@@ -73,14 +69,10 @@ public class DBOrderRepository implements Repository<Order> {
 
             ps.setString(1, id);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    Order order = mapOrder(rs, conn);
-                    return Optional.of(order);
-                }
+                if (rs.next()) return Optional.of(mapOrder(rs, conn));
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to find order [" + id + "]: "
-                    + e.getMessage(), e);
+            throw new RuntimeException("Failed to find order [" + id + "]: " + e.getMessage(), e);
         }
         return Optional.empty();
     }
@@ -92,9 +84,8 @@ public class DBOrderRepository implements Repository<Order> {
              PreparedStatement ps = conn.prepareStatement(SELECT_ALL_ORDERS);
              ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) {
-                orders.add(mapOrder(rs, conn));
-            }
+            while (rs.next()) orders.add(mapOrder(rs, conn));
+
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load all orders: " + e.getMessage(), e);
         }
@@ -110,8 +101,7 @@ public class DBOrderRepository implements Repository<Order> {
             ps.executeUpdate();
 
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to delete order [" + id + "]: "
-                    + e.getMessage(), e);
+            throw new RuntimeException("Failed to delete order [" + id + "]: " + e.getMessage(), e);
         }
     }
 
@@ -122,39 +112,32 @@ public class DBOrderRepository implements Repository<Order> {
             ps.setString(3, order.getCustomerName());
             ps.setString(4, order.getStatus().name());
 
-            if (order.getPaymentMode() != null) {
+            if (order.getPaymentMode() != null)
                 ps.setString(5, order.getPaymentMode().name());
-            } else {
+            else
                 ps.setNull(5, Types.VARCHAR);
-            }
 
-            if (order.getDeliveryPartnerId() != null) {
+            if (order.getDeliveryPartnerId() != null)
                 ps.setString(6, order.getDeliveryPartnerId());
-            } else {
+            else
                 ps.setNull(6, Types.VARCHAR);
-            }
 
             ps.setDouble(7, order.getTotalAmount() - order.getFinalAmount());
             ps.setTimestamp(8, Timestamp.valueOf(order.getCreatedAt()));
-
             ps.executeUpdate();
         }
     }
 
-    private void syncOrderItems(Order order, Connection conn) throws SQLException {
-        try (PreparedStatement del = conn.prepareStatement(DELETE_ORDER_ITEMS)) {
-            del.setString(1, order.getId());
-            del.executeUpdate();
-        }
-
+    private void insertItemsOnce(Order order, Connection conn) throws SQLException {
+        if (order.getStatus() != OrderStatus.PAID) return;
         if (order.getItems().isEmpty()) return;
 
         try (PreparedStatement ins = conn.prepareStatement(INSERT_ORDER_ITEM)) {
             for (OrderItem oi : order.getItems()) {
                 ins.setString(1, order.getId());
-                ins.setString(2, oi.item().getId());   
-                ins.setString(3, oi.item().getName()); 
-                ins.setDouble(4, oi.item().getPrice()); 
+                ins.setString(2, oi.item().getId());
+                ins.setString(3, oi.item().getName());
+                ins.setDouble(4, oi.item().getPrice());
                 ins.setInt(5, oi.quantity());
                 ins.addBatch();
             }
@@ -163,18 +146,17 @@ public class DBOrderRepository implements Repository<Order> {
     }
 
     private Order mapOrder(ResultSet rs, Connection conn) throws SQLException {
-        String      id                = rs.getString("id");
-        String      customerId        = rs.getString("customer_id");
-        String      customerName      = rs.getString("customer_name");
-        OrderStatus status            = OrderStatus.valueOf(rs.getString("status"));
-        LocalDateTime createdAt       = rs.getTimestamp("created_at").toLocalDateTime();
-        double      discount          = rs.getDouble("discount");
+        String      id             = rs.getString("id");
+        String      customerId     = rs.getString("customer_id");
+        String      customerName   = rs.getString("customer_name");
+        OrderStatus status         = OrderStatus.valueOf(rs.getString("status"));
+        LocalDateTime createdAt    = rs.getTimestamp("created_at").toLocalDateTime();
+        double      discount       = rs.getDouble("discount");
 
-        String paymentModeStr         = rs.getString("payment_mode");
-        PaymentMode paymentMode       = (paymentModeStr != null)
-                ? PaymentMode.valueOf(paymentModeStr) : null;
+        String paymentModeStr      = rs.getString("payment_mode");
+        PaymentMode paymentMode    = paymentModeStr != null ? PaymentMode.valueOf(paymentModeStr) : null;
 
-        String deliveryPartnerId      = rs.getString("delivery_partner_id");
+        String deliveryPartnerId   = rs.getString("delivery_partner_id");
 
         List<OrderItem> items = loadOrderItems(id, conn);
 
@@ -184,7 +166,6 @@ public class DBOrderRepository implements Repository<Order> {
 
     private List<OrderItem> loadOrderItems(String orderId, Connection conn) throws SQLException {
         List<OrderItem> items = new ArrayList<>();
-
         try (PreparedStatement ps = conn.prepareStatement(SELECT_ORDER_ITEMS)) {
             ps.setString(1, orderId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -193,11 +174,8 @@ public class DBOrderRepository implements Repository<Order> {
                     String itemName  = rs.getString("item_name");
                     double itemPrice = rs.getDouble("item_price");
                     int    quantity  = rs.getInt("quantity");
-
-                    String safeId = (itemId != null) ? itemId : "deleted-" + itemName;
-                    MenuItem snapshot = new MenuItem(safeId, itemName, itemPrice);
-
-                    items.add(new OrderItem(snapshot, quantity));
+                    String safeId   = itemId != null ? itemId : "deleted-" + itemName;
+                    items.add(new OrderItem(new MenuItem(safeId, itemName, itemPrice), quantity));
                 }
             }
         }
