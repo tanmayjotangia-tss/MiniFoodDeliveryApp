@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS admins (
     user_id VARCHAR(36) PRIMARY KEY
             REFERENCES users(id) ON DELETE CASCADE
 );
-
+        
 CREATE TABLE IF NOT EXISTS customers (
     user_id                  VARCHAR(36) PRIMARY KEY
                              REFERENCES users(id) ON DELETE CASCADE,

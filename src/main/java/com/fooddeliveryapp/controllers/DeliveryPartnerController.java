@@ -195,11 +195,13 @@ public class DeliveryPartnerController {
 
     private void viewEarning() {
         try {
+            // Re-fetch from DB to ensure basicPay and incentivePercentage are current
+            DeliveryPartner freshPartner = partnerService.findById(loggedInPartner.getId());
             double totalEarnings = partnerService.calculateEarnings(loggedInPartner.getId());
 
             System.out.println("\n=== EARNINGS SUMMARY ===");
-            System.out.println("Basic Pay: ₹" + loggedInPartner.getBasicPay());
-            System.out.println("Incentive Percentage: " + loggedInPartner.getIncentivePercentage() + "%");
+            System.out.println("Basic Pay: ₹" + freshPartner.getBasicPay());
+            System.out.println("Incentive Percentage: " + freshPartner.getIncentivePercentage() + "%");
             System.out.println("----------------------------");
             System.out.println("Total Earnings: ₹" + totalEarnings);
         } catch (Exception e) {

@@ -12,26 +12,34 @@ public class DatabaseInitializer {
 
         try {
             Connection conn = DatabaseConnection.getConnection();
-            Statement stmt = conn.createStatement();
 
-            InputStream is = DatabaseInitializer.class
-                    .getClassLoader()
-                    .getResourceAsStream("schema.sql");
+            try (Statement stmt = conn.createStatement()) {
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                InputStream is = DatabaseInitializer.class
+                        .getClassLoader()
+                        .getResourceAsStream("schema.sql");
 
-            StringBuilder sql = new StringBuilder();
-            String line;
+                if (is == null) {
+                    System.out.println("schema.sql not found on classpath.");
+                    return;
+                }
 
-            while ((line = reader.readLine()) != null) {
-                sql.append(line);
-            }
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
 
-            String[] queries = sql.toString().split(";");
+                    StringBuilder sql = new StringBuilder();
+                    String line;
 
-            for (String query : queries) {
-                if (!query.trim().isEmpty()) {
-                    stmt.execute(query);
+                    while ((line = reader.readLine()) != null) {
+                        sql.append(line);
+                    }
+
+                    String[] queries = sql.toString().split(";");
+
+                    for (String query : queries) {
+                        if (!query.trim().isEmpty()) {
+                            stmt.execute(query);
+                        }
+                    }
                 }
             }
 

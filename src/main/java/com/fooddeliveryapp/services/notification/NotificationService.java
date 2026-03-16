@@ -18,7 +18,7 @@ public class NotificationService {
 
     public void notifyUser(String userId, String message) {
 
-        User user = userRepository.findById(userId)
+        userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         AppNotification notification = new AppNotification(message);

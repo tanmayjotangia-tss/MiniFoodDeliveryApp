@@ -307,7 +307,7 @@ public class OrderService {
             }
         }
 
-        order.cancel();
+        order.cancelByAdmin();
         orderRepository.save(order);
     }
 

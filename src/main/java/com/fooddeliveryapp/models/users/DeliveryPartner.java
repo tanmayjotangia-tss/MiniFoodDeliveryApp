@@ -1,16 +1,10 @@
 package com.fooddeliveryapp.models.users;
 
-import com.fooddeliveryapp.models.notification.AppNotification;
-
-import java.util.ArrayList;
-import java.util.List;
-
 public class DeliveryPartner extends User {
 
     private boolean available;
     private double basicPay;
     private double incentivePercentage;
-    private final List<AppNotification> notifications = new ArrayList<>();
 
     public DeliveryPartner(String name, String email, String phone, String password, double basicPay) {
 
@@ -26,12 +20,6 @@ public class DeliveryPartner extends User {
         this.basicPay = basicPay;
         this.available = available;
         this.incentivePercentage = incentivePercentage;
-    }
-
-    @Override
-    public void restoreNotifications(List<AppNotification> loaded) {
-        this.notifications.clear();
-        this.notifications.addAll(loaded);
     }
 
     public double getBasicPay() {
@@ -52,6 +40,7 @@ public class DeliveryPartner extends User {
     }
 
     public void updateBasicPay(double newPay) {
+        if (newPay <= 0) throw new IllegalArgumentException("Basic pay must be greater than 0");
         this.basicPay = newPay;
     }
 
@@ -63,17 +52,5 @@ public class DeliveryPartner extends User {
         if (percentage < 0)
             throw new IllegalArgumentException("Invalid percentage");
         this.incentivePercentage = percentage;
-    }
-
-    public List<AppNotification> getNotifications() {
-        return notifications;
-    }
-
-    public void addNotification(AppNotification notification) {
-        notifications.add(notification);
-    }
-
-    public void removeNotification(String id) {
-        notifications.removeIf(n -> n.getId().equals(id));
     }
 }

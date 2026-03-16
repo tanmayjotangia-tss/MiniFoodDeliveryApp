@@ -10,6 +10,7 @@ import java.util.Properties;
 public final class DatabaseConnection {
 
     private static final Properties CONFIG = new Properties();
+    private static Connection cachedConnection;
 
     static {
         try (InputStream is = DatabaseConnection.class
@@ -32,10 +33,13 @@ public final class DatabaseConnection {
 
     private DatabaseConnection() {}
 
-    public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(
-                CONFIG.getProperty("db.url"),
-                CONFIG.getProperty("db.username"),
-                CONFIG.getProperty("db.password"));
+    public static synchronized Connection getConnection() throws SQLException {
+        if (cachedConnection == null || cachedConnection.isClosed()) {
+            cachedConnection = DriverManager.getConnection(
+                    CONFIG.getProperty("db.url"),
+                    CONFIG.getProperty("db.username"),
+                    CONFIG.getProperty("db.password"));
+        }
+        return cachedConnection;
     }
 }

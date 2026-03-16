@@ -792,16 +792,17 @@ public class AdminController {
 
     private List<MenuItem> getAllMenuItems() {
         List<MenuItem> items = new ArrayList<>();
+        collectItemsRecursive(menu.getRootCategory(), items);
+        return items;
+    }
 
-        for (MenuComponent component : menu.getRootCategory().getComponents()) {
-            if (component instanceof MenuCategory category) {
-                for (MenuComponent child : category.getComponents()) {
-                    if (child instanceof MenuItem item) {
-                        items.add(item);
-                    }
-                }
+    private void collectItemsRecursive(MenuCategory category, List<MenuItem> items) {
+        for (MenuComponent component : category.getComponents()) {
+            if (component instanceof MenuItem item) {
+                items.add(item);
+            } else if (component instanceof MenuCategory subCategory) {
+                collectItemsRecursive(subCategory, items);
             }
         }
-        return items;
     }
 }

@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="cac37f73-ac18-4ad2-9118-a37ec3649fb3" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/repository/DBCartRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/repository/DBCartRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/repository/DBDiscountRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/repository/DBDiscountRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/schema.sql" afterDir="false" />
-    </list>
+    <list default="true" id="cac37f73-ac18-4ad2-9118-a37ec3649fb3" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

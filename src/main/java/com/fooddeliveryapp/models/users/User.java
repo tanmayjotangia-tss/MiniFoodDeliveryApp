@@ -21,13 +21,7 @@ public abstract class User implements Serializable {
     protected List<AppNotification> notifications = new ArrayList<>();
 
     protected User(String name, String email, String phone, String password) {
-
-        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name required");
-
-        if (email == null || email.isBlank()) throw new IllegalArgumentException("Email required");
-
-        if (password == null || password.isBlank()) throw new IllegalArgumentException("Password required");
-
+        validate(name, email, password);
         this.id = UUID.randomUUID().toString();
         this.name = name;
         this.email = email;
@@ -35,19 +29,21 @@ public abstract class User implements Serializable {
         this.password = password;
     }
 
-    /**
-     * JDBC reconstruction constructor.
-     * Restores a User from the database using its persisted {@code id}.
-     */
     protected User(String id, String name, String email, String phone, String password) {
-        this(name, email, phone, password);
-        this.id = id;  // override the generated UUID with the stored one
+        validate(name, email, password);
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+        this.password = password;
     }
 
-    /**
-     * Restores the notification list from the database.
-     * Called by JDBC repositories after object construction.
-     */
+    private static void validate(String name, String email, String password) {
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name required");
+        if (email == null || email.isBlank()) throw new IllegalArgumentException("Email required");
+        if (password == null || password.isBlank()) throw new IllegalArgumentException("Password required");
+    }
+
     public void restoreNotifications(List<AppNotification> loaded) {
         this.notifications = new ArrayList<>(loaded);
     }

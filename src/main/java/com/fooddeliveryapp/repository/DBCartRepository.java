@@ -5,9 +5,6 @@ import com.fooddeliveryapp.models.cart.Cart;
 import com.fooddeliveryapp.models.cart.CartItem;
 import com.fooddeliveryapp.models.menu.MenuItem;
 import com.fooddeliveryapp.models.users.Customer;
-import com.fooddeliveryapp.models.users.User;
-import com.fooddeliveryapp.repository.CartRepository;
-import com.fooddeliveryapp.repository.UserRepository;
 
 import java.sql.*;
 import java.util.*;

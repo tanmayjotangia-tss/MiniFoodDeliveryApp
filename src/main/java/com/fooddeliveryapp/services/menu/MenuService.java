@@ -21,10 +21,10 @@ public class MenuService {
     public void addCategory(Menu menu, MenuCategory category) {
         try {
             menu.addCategory(category);
+            menuRepository.save(menu);
         } catch (DuplicateEntityException e) {
             System.out.println(category.getName() + " already exists!");
         }
-        menuRepository.save(menu);
     }
 
     public void addItem(Menu menu, MenuCategory category, MenuItem item) {

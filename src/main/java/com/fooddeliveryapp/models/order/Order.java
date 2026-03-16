@@ -137,6 +137,20 @@ public class Order implements Serializable {
 
         if (status == OrderStatus.CANCELLED) throw new IllegalStateException("Order already cancelled.");
 
+        if (status == OrderStatus.OUT_FOR_DELIVERY)
+            throw new IllegalStateException("Cannot cancel order that is out for delivery directly. Use admin cancellation.");
+
+        this.status = OrderStatus.CANCELLED;
+
+        notifyObservers("Order has been cancelled.");
+    }
+
+    public void cancelByAdmin() {
+
+        if (status == OrderStatus.DELIVERED) throw new IllegalStateException("Delivered order cannot be cancelled.");
+
+        if (status == OrderStatus.CANCELLED) throw new IllegalStateException("Order already cancelled.");
+
         this.status = OrderStatus.CANCELLED;
 
         notifyObservers("Order has been cancelled.");

@@ -505,7 +505,6 @@ public class CustomerController {
     private void checkout() {
         try {
             checkout(cart);
-            cart.clearCart();
             cartRepository.save(cart);
         } catch (Exception e) {
             System.out.println("Checkout failed: " + e.getMessage());
