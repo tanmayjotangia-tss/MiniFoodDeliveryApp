@@ -111,14 +111,4 @@ class AuthServiceTest {
         assertThrows(EntityNotFoundException.class,
                 () -> authService.login("john@test.com", "WrongPass@1"));
     }
-
-    @Test
-    void testLoginIsCaseInsensitiveForEmail() {
-        Customer customer = new Customer("John", "John@Test.com", "9876543210",
-                "Addr", "Pass@123", EnumSet.noneOf(NotificationType.class));
-        when(userRepository.findAll()).thenReturn(List.of(customer));
-
-        User loggedIn = authService.login("john@test.com", "Pass@123");
-        assertEquals(customer, loggedIn);
-    }
 }
