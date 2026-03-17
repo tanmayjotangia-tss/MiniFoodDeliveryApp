@@ -426,18 +426,24 @@ public class AdminController {
             return;
         }
 
-        for (int i = 0; i < partners.size(); i++) {
-            DeliveryPartner p = partners.get(i);
-            System.out.println((i + 1) + ". " + p.getName() + " | ID: " + p.getId());
+        DeliveryPartner selected = selectFromList(partners,
+                p -> p.getName() + " | ID: " + p.getId());
+
+        if (selected == null) return;
+
+        double percentage;
+        while (true) {
+            percentage = InputUtil.readDouble("Enter new incentive percentage: ");
+            if (percentage > 0 && percentage <= 100) break;
+            System.out.println("Percentage must be between 0 and 100. Please try again.");
         }
-        String id = InputUtil.readString("Enter partner ID: ");
-        double percentage = InputUtil.readDouble("Enter new incentive percentage: ");
+
         try {
-            deliveryService.updateIncentivePercentage(id, percentage);
+            deliveryService.updateIncentivePercentage(selected.getId(), percentage);
             System.out.println("Incentive Percentage updated.");
         } catch (EntityNotFoundException e) {
             System.out.println(e.getMessage());
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("Failed to update incentive: " + e.getMessage());
         }
     }
@@ -671,7 +677,7 @@ public class AdminController {
         List<Order> orders = orderService.getAllOrders()
                 .stream()
                 .filter(o -> o.getStatus() == OrderStatus.PAID
-                || o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN)
+                        || o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN)
                 .toList();
 
         if (orders.isEmpty()) {
@@ -792,17 +798,16 @@ public class AdminController {
 
     private List<MenuItem> getAllMenuItems() {
         List<MenuItem> items = new ArrayList<>();
-        collectItemsRecursive(menu.getRootCategory(), items);
-        return items;
-    }
 
-    private void collectItemsRecursive(MenuCategory category, List<MenuItem> items) {
-        for (MenuComponent component : category.getComponents()) {
-            if (component instanceof MenuItem item) {
-                items.add(item);
-            } else if (component instanceof MenuCategory subCategory) {
-                collectItemsRecursive(subCategory, items);
+        for (MenuComponent component : menu.getRootCategory().getComponents()) {
+            if (component instanceof MenuCategory category) {
+                for (MenuComponent child : category.getComponents()) {
+                    if (child instanceof MenuItem item) {
+                        items.add(item);
+                    }
+                }
             }
         }
+        return items;
     }
 }

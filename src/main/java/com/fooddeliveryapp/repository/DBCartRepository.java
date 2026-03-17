@@ -32,14 +32,15 @@ public class DBCartRepository implements CartRepository {
             "DELETE FROM cart_items WHERE menu_item_id = ?";
 
     private static final String SELECT_CART_BY_CUSTOMER =
-            "SELECT * FROM carts WHERE customer_id = ?";
+            "SELECT id, customer_id FROM carts WHERE customer_id = ?";
 
     private static final String SELECT_ALL_CARTS =
-            "SELECT * FROM carts";
+            "SELECT id, customer_id FROM carts";
 
     private static final String SELECT_CART_ITEMS = """
-            SELECT ci.id, ci.menu_item_id, ci.quantity,
-                   mi.name AS item_name, mi.price AS item_price
+            SELECT ci.menu_item_id, ci.quantity,
+                   mi.name  AS item_name,
+                   mi.price AS item_price
             FROM cart_items ci
             JOIN menu_items mi ON ci.menu_item_id = mi.id
             WHERE ci.cart_id = ?
@@ -71,31 +72,57 @@ public class DBCartRepository implements CartRepository {
 
     @Override
     public Optional<Cart> findByCustomerId(String customerId) {
+        String cartId;
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(SELECT_CART_BY_CUSTOMER)) {
 
             ps.setString(1, customerId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return Optional.of(loadCart(rs, conn));
+                if (!rs.next()) return Optional.empty();
+                cartId = rs.getString("id");
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find cart for customer ["
                     + customerId + "]: " + e.getMessage(), e);
         }
-        return Optional.empty();
+
+        Customer customer = userRepository.findById(customerId)
+                .filter(u -> u instanceof Customer)
+                .map(u -> (Customer) u)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer not found for cart: " + customerId));
+
+        List<CartItem> items = loadCartItems(cartId);
+
+        return Optional.of(new Cart(cartId, customer, items));
     }
 
     @Override
     public List<Cart> findAll() {
-        List<Cart> carts = new ArrayList<>();
+        List<String[]> rows = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(SELECT_ALL_CARTS);
              ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) carts.add(loadCart(rs, conn));
-
+            while (rs.next()) {
+                rows.add(new String[]{ rs.getString("id"), rs.getString("customer_id") });
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load all carts: " + e.getMessage(), e);
+        }
+
+        List<Cart> carts = new ArrayList<>();
+        for (String[] row : rows) {
+            String cartId     = row[0];
+            String customerId = row[1];
+
+            userRepository.findById(customerId)
+                    .filter(u -> u instanceof Customer)
+                    .map(u -> (Customer) u)
+                    .ifPresent(customer -> {
+                        List<CartItem> items = loadCartItems(cartId);
+                        carts.add(new Cart(cartId, customer, items));
+                    });
         }
         return carts;
     }
@@ -158,33 +185,25 @@ public class DBCartRepository implements CartRepository {
         }
     }
 
-    private Cart loadCart(ResultSet rs, Connection conn) throws SQLException {
-        String cartId     = rs.getString("id");
-        String customerId = rs.getString("customer_id");
-
-        Customer customer = userRepository.findById(customerId)
-                .filter(u -> u instanceof Customer)
-                .map(u -> (Customer) u)
-                .orElseThrow(() -> new RuntimeException(
-                        "Customer not found for cart: " + customerId));
-
-        List<CartItem> items = loadCartItems(cartId, conn);
-        return new Cart(cartId, customer, items);
-    }
-
-    private List<CartItem> loadCartItems(String cartId, Connection conn) throws SQLException {
+    private List<CartItem> loadCartItems(String cartId) {
         List<CartItem> items = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(SELECT_CART_ITEMS)) {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SELECT_CART_ITEMS)) {
+
             ps.setString(1, cartId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String itemId    = rs.getString("menu_item_id");
-                    String itemName  = rs.getString("item_name");
-                    double itemPrice = rs.getDouble("item_price");
-                    int    quantity  = rs.getInt("quantity");
-                    items.add(new CartItem(new MenuItem(itemId, itemName, itemPrice), quantity));
+                    items.add(new CartItem(
+                            new MenuItem(
+                                    rs.getString("menu_item_id"),
+                                    rs.getString("item_name"),
+                                    rs.getDouble("item_price")),
+                            rs.getInt("quantity")));
                 }
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load items for cart ["
+                    + cartId + "]: " + e.getMessage(), e);
         }
         return items;
     }

@@ -1,6 +1,5 @@
 package com.fooddeliveryapp.controllers;
 
-import com.fooddeliveryapp.db.DatabaseInitializer;
 import com.fooddeliveryapp.models.menu.Menu;
 import com.fooddeliveryapp.models.order.Order;
 import com.fooddeliveryapp.models.users.Admin;
@@ -38,7 +37,6 @@ public class ApplicationController {
 
     public ApplicationController() {
 
-        DatabaseInitializer.initialize();
 
         Repository<Menu>  menuRepository  = new DBMenuRepository();
         Repository<Order> orderRepository = new DBOrderRepository();

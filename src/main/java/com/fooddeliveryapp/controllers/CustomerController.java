@@ -90,6 +90,9 @@ public class CustomerController {
 
     private boolean showDashboardMenu() {
 
+        // Cart is loaded from DB once at login and kept in memory for the
+        // entire session — no need to re-query on every menu iteration.
+
         System.out.println("\n====== CUSTOMER DASHBOARD ======");
         System.out.println("1. Add Item");
         System.out.println("2. Update Item Quantity");
@@ -131,6 +134,10 @@ public class CustomerController {
     }
 
     private void viewNotifications() {
+
+        // Re-fetch the customer from DB to get notifications that arrived
+        // during this session (written by NotificationService via a separate
+        // DB-loaded object, so the in-memory loggedInCustomer is stale).
         userRepository.findById(loggedInCustomer.getId())
                 .filter(u -> u instanceof Customer)
                 .map(u -> (Customer) u)
@@ -143,6 +150,7 @@ public class CustomerController {
             return;
         }
 
+        // Sort newest first
         notifications.sort(Comparator.comparing(AppNotification::getTimestamp).reversed());
 
         int pageSize = 5;
@@ -352,7 +360,7 @@ public class CustomerController {
             case 2 -> {
                 mode = PaymentMode.UPI;
 
-                InputUtil.readUPI("Enter UPI ID: ");
+                String upiId = InputUtil.readUPI("Enter UPI ID: ");
 
                 strategy = PaymentFactory.getStrategy("UPI");
             }
@@ -377,7 +385,7 @@ public class CustomerController {
 
     private void handleLogin() {
 
-        String email = InputUtil.readEmail("Enter Email: ");
+        String email    = InputUtil.readEmail("Enter Email: ");
         String password = InputUtil.readPassword("Enter Password: ");
 
         try {
@@ -386,13 +394,23 @@ public class CustomerController {
             if (user instanceof Customer customer) {
                 loggedInCustomer = customer;
 
-                cart = cartRepository
-                        .findByCustomerId(loggedInCustomer.getId())
-                        .orElseGet(() -> {
-                            Cart newCart = new Cart(loggedInCustomer);
-                            cartRepository.save(newCart);
-                            return newCart;
-                        });
+                // Load the existing cart from DB, or create a new one.
+                // This is done in a separate try-catch so that a transient DB
+                // error during cart loading never leaves this.cart null — the
+                // customer always gets a usable (empty) in-memory cart instead.
+                try {
+                    cart = cartRepository
+                            .findByCustomerId(loggedInCustomer.getId())
+                            .orElseGet(() -> {
+                                Cart newCart = new Cart(loggedInCustomer);
+                                cartRepository.save(newCart);
+                                return newCart;
+                            });
+                } catch (Exception cartError) {
+                    System.out.println("Warning: could not load cart from DB — starting with empty cart. ("
+                            + cartError.getMessage() + ")");
+                    cart = new Cart(loggedInCustomer);
+                }
 
                 System.out.println("Customer logged in.");
             } else {
@@ -424,6 +442,7 @@ public class CustomerController {
 
         switch (choice) {
             case 0 -> {
+                // No external notification
             }
             case 1 -> preferences.add(NotificationType.EMAIL);
             case 2 -> preferences.add(NotificationType.PHONE);
@@ -488,6 +507,9 @@ public class CustomerController {
     private void viewCart() {
 
         try {
+            // Cart is maintained in memory throughout the session.
+            // No DB read needed — this.cart is always current.
+
             if (cart.getItems().isEmpty()) {
                 System.out.println("Cart is empty.");
                 return;
@@ -505,6 +527,7 @@ public class CustomerController {
     private void checkout() {
         try {
             checkout(cart);
+            cart.clearCart();
             cartRepository.save(cart);
         } catch (Exception e) {
             System.out.println("Checkout failed: " + e.getMessage());
@@ -512,6 +535,8 @@ public class CustomerController {
     }
 
     private void displayOrderHistorySummary(List<Order> orders) {
+
+        final int WIDTH = 60;
 
         System.out.println("============================================================");
         System.out.printf("%30s%n", "ORDER HISTORY");
