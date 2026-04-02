@@ -46,7 +46,8 @@ public class OrderService {
 
     //    Scan order repo for every order with confirm bye admin status and re-enques it
     private void rehydrateWaitingQueue() {
-        orderRepository.findAll().stream().filter(o -> o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN).sorted(Comparator.comparing(Order::getCreatedAt))   // oldest first → fair FIFO
+        orderRepository.findAll().stream().filter(o -> o.getStatus() == OrderStatus.CONFIRMED_BY_ADMIN)
+                .sorted(Comparator.comparing(Order::getCreatedAt))
                 .forEach(waitingOrders::add);
 
         if (!waitingOrders.isEmpty()) {
@@ -110,7 +111,11 @@ public class OrderService {
 
         order.confirmByAdmin();
 
-        List<DeliveryPartner> partners = userRepository.findAll().stream().filter(u -> u instanceof DeliveryPartner).map(u -> (DeliveryPartner) u).toList();
+        List<DeliveryPartner> partners = userRepository.findAll()
+                .stream()
+                .filter(u -> u instanceof DeliveryPartner)
+                .map(u -> (DeliveryPartner) u)
+                .toList();
 
         if (partners.isEmpty()) {
             waitingOrders.add(order);

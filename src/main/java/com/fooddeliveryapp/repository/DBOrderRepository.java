@@ -146,11 +146,11 @@ public class DBOrderRepository implements Repository<Order> {
     }
 
     private Order mapOrder(ResultSet rs, Connection conn) throws SQLException {
-        String      id             = rs.getString("id");
-        String      customerId     = rs.getString("customer_id");
-        String      customerName   = rs.getString("customer_name");
-        OrderStatus status         = OrderStatus.valueOf(rs.getString("status"));
-        LocalDateTime createdAt    = rs.getTimestamp("created_at").toLocalDateTime();
+        String id = rs.getString("id");
+        String customerId = rs.getString("customer_id");
+        String customerName = rs.getString("customer_name");
+        OrderStatus status = OrderStatus.valueOf(rs.getString("status"));
+        LocalDateTime createdAt = rs.getTimestamp("created_at").toLocalDateTime();
         double      discount       = rs.getDouble("discount");
 
         String paymentModeStr      = rs.getString("payment_mode");

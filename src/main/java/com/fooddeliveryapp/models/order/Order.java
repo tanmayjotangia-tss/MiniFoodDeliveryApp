@@ -39,10 +39,6 @@ public class Order implements Serializable {
         this.status = OrderStatus.CREATED;
     }
 
-    /**
-     * JDBC reconstruction constructor.
-     * Rebuilds a persisted Order with all fields restored from the database.
-     */
     public Order(String id, String customerId, String customerName,
                  List<OrderItem> items, LocalDateTime createdAt,
                  PaymentMode paymentMode, String deliveryPartnerId,

@@ -16,7 +16,6 @@ public class AppNotification implements Serializable {
     private final LocalDateTime timestamp;
     private boolean read;
 
-    /** Standard constructor — generates a fresh UUID and timestamps now. */
     public AppNotification(String message) {
         this.id = UUID.randomUUID().toString();
         this.message = message;
@@ -24,11 +23,6 @@ public class AppNotification implements Serializable {
         this.read = false;
     }
 
-    /**
-     * JDBC reconstruction constructor.
-     * Restores a notification exactly as it was persisted
-     * (preserves id, timestamp, and read state).
-     */
     public AppNotification(String id, String message, LocalDateTime timestamp, boolean read) {
         this.id        = id;
         this.message   = message;
@@ -40,7 +34,6 @@ public class AppNotification implements Serializable {
         return id;
     }
 
-    /** Needed by JDBC repositories to persist the read/unread state. */
     public boolean isRead() {
         return read;
     }

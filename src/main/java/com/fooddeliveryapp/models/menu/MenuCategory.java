@@ -9,21 +9,15 @@ import java.util.UUID;
 
 public class MenuCategory extends MenuComponent {
 
-    /** Stable identifier – required for PostgreSQL persistence. */
     private final String id;
 
     private final List<MenuComponent> components = new ArrayList<>();
 
-    /** Standard constructor – generates a fresh UUID. */
     public MenuCategory(String name) {
         super(name);
         this.id = UUID.randomUUID().toString();
     }
 
-    /**
-     * JDBC reconstruction constructor.
-     * Restores a category that was previously persisted with the given {@code id}.
-     */
     public MenuCategory(String id, String name) {
         super(name);
         this.id = id;

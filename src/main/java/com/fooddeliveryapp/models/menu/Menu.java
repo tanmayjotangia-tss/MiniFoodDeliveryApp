@@ -12,7 +12,6 @@ public class Menu implements Serializable {
     private final String id;
     private final MenuCategory rootCategory;
 
-    /** Standard constructor – generates a fresh UUID. */
     public Menu(String restaurantName) {
 
         if (restaurantName == null || restaurantName.isBlank())
@@ -22,10 +21,6 @@ public class Menu implements Serializable {
         this.rootCategory = new MenuCategory(restaurantName);
     }
 
-    /**
-     * JDBC reconstruction constructor.
-     * Rebuilds a Menu from persisted data (id + pre-populated root category).
-     */
     public Menu(String id, MenuCategory rootCategory) {
         if (id == null || id.isBlank()) throw new IllegalArgumentException("Id required");
         if (rootCategory == null) throw new IllegalArgumentException("Root category required");

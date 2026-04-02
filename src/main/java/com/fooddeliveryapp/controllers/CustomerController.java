@@ -309,6 +309,11 @@ public class CustomerController {
                         continue;
                     }
 
+                    if(qty > selected.getQuantity()){
+                        System.out.println("Cannot decrease more the present quantity");
+                        continue;
+                    }
+
                     try {
                         cart.decreaseItemQuantity(selected.getItem().getId(), qty);
                         System.out.println("Quantity updated.");
@@ -360,7 +365,7 @@ public class CustomerController {
             case 2 -> {
                 mode = PaymentMode.UPI;
 
-                String upiId = InputUtil.readUPI("Enter UPI ID: ");
+                InputUtil.readUPI("Enter UPI ID: ");
 
                 strategy = PaymentFactory.getStrategy("UPI");
             }
@@ -394,10 +399,6 @@ public class CustomerController {
             if (user instanceof Customer customer) {
                 loggedInCustomer = customer;
 
-                // Load the existing cart from DB, or create a new one.
-                // This is done in a separate try-catch so that a transient DB
-                // error during cart loading never leaves this.cart null — the
-                // customer always gets a usable (empty) in-memory cart instead.
                 try {
                     cart = cartRepository
                             .findByCustomerId(loggedInCustomer.getId())
@@ -507,9 +508,6 @@ public class CustomerController {
     private void viewCart() {
 
         try {
-            // Cart is maintained in memory throughout the session.
-            // No DB read needed — this.cart is always current.
-
             if (cart.getItems().isEmpty()) {
                 System.out.println("Cart is empty.");
                 return;

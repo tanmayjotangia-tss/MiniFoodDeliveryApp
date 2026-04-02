@@ -20,10 +20,6 @@ public class Cart implements Serializable {
         this.customer = customer;
     }
 
-    /**
-     * JDBC reconstruction constructor.
-     * Rebuilds a persisted Cart with its stored id and pre-loaded items.
-     */
     public Cart(String id, Customer customer, List<CartItem> loadedItems) {
         if (customer == null) throw new IllegalArgumentException("Customer required");
         this.id = id;

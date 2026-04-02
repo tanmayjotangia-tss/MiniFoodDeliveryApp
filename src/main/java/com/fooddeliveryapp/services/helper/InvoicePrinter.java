@@ -67,10 +67,7 @@ public class InvoicePrinter {
         System.out.println();
     }
 
-    // --------------------------
-    // Helper Methods
-    // --------------------------
-
+    //Helpers
     private static void printLine(char ch) {
         for (int i = 0; i < WIDTH; i++) {
             System.out.print(ch);

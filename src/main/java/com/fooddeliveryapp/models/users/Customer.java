@@ -15,9 +15,6 @@ public class Customer extends User {
         this.notificationPreferences = notificationPreferences;
     }
 
-    /**
-     * JDBC reconstruction constructor.
-     */
     public Customer(String id, String name, String email, String phone, String address,
                     String password, Set<NotificationType> notificationPreferences) {
         super(id, name, email, phone, password);

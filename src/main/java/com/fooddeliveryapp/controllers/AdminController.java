@@ -532,7 +532,6 @@ public class AdminController {
         }
     }
 
-
     //    Discount Management
     private void configureDiscountMenu() {
 

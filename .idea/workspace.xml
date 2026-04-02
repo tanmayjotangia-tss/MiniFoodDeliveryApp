@@ -5,19 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cac37f73-ac18-4ad2-9118-a37ec3649fb3" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/cart/CartItemTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/cart/CartTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/menu/MenuCategoryTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/menu/MenuItemTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/menu/MenuTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/notification/AppNotificationTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/order/OrderTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/users/AdminTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/users/CustomerTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/models/users/DeliveryPartnerTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/services/helper/AuthServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/fooddeliveryapp/services/helper/AuthServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/app/RestaurantApp.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/app/RestaurantApp.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/AdminController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/AdminController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/CustomerController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/CustomerController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/DeliveryPartnerController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/controllers/DeliveryPartnerController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/InvoicePrinter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/helper/InvoicePrinter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/order/OrderService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fooddeliveryapp/services/order/OrderService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -92,7 +86,20 @@
       <recent name="com.fooddeliveryapp.models.payment" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Application.RestaurantApp">
+    <configuration name="RestaurantApp" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.fooddeliveryapp.app.RestaurantApp" />
+      <module name="MiniFoodOrderingApp" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.fooddeliveryapp.app.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="DeliveryPartnerServiceTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="MiniFoodOrderingApp" />
       <extension name="coverage">
@@ -103,21 +110,6 @@
       </extension>
       <option name="PACKAGE_NAME" value="com.fooddeliveryapp.services.delivery" />
       <option name="MAIN_CLASS_NAME" value="com.fooddeliveryapp.services.delivery.DeliveryPartnerServiceTest" />
-      <option name="TEST_OBJECT" value="class" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="DiscountServiceTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="MiniFoodOrderingApp" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="com.fooddeliveryapp.services.discount.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="com.fooddeliveryapp.services.discount" />
-      <option name="MAIN_CLASS_NAME" value="com.fooddeliveryapp.services.discount.DiscountServiceTest" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -170,11 +162,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Application.RestaurantApp" />
         <item itemvalue="JUnit.OrderServiceTest" />
         <item itemvalue="JUnit.FirstAvailableDeliveryAssignmentTest" />
         <item itemvalue="JUnit.DeliveryPartnerServiceTest" />
         <item itemvalue="JUnit.TieredPercentageDiscountTest" />
-        <item itemvalue="JUnit.DiscountServiceTest" />
       </list>
     </recent_temporary>
   </component>
